@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node  
+      - ELASTIC_PASSWORD=changeme  
+      - xpack.security.enabled=false  # Disable security for now
+    ports:
+      - "30051:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    networks:
+      - elk
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.17.3
+    container_name: kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - "30052:5601"
+    networks:
+      - elk
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.7.0
+    container_name: logstash
+    depends_on:
+      - elasticsearch
+    volumes:
+      - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "30053:5044"  # Beats input
+      - "30054:5000/tcp"  # Logstash TCP input
+      - "30055:5000/udp"  # Logstash UDP input
+    networks:
+      - elk
+
+volumes:
+  esdata:
+
+networks:
+  elk:
+    driver: bridge
