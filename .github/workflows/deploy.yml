@@ -20,6 +20,11 @@ jobs:
             - name: Build Docker Images
               run: docker compose build
 
+            - name: Set environment variables from GitHub Secrets
+              run: |
+                echo "ELASTICSEARCH_USER=${{ secrets.ELASTICSEARCH_USER }}" >> $GITHUB_ENV
+                echo "ELASTICSEARCH_PASSWORD=${{ secrets.ELASTICSEARCH_PASSWORD }}" >> $GITHUB_ENV
+
             - name: Test Docker Compose
               run: |
                 docker compose up -docker
