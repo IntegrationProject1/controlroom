@@ -24,8 +24,8 @@ def dict_to_xml(log):
 RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
 RABBITMQ_PORT = 30020
 RABBITMQ_QUEUE = "controlroom.heartbeat.test"
-RABBITMQ_USERNAME = "ehbstudent"
-RABBITMQ_PASSWORD = "wpqjf9mI3DKZdZDaa!"
+RABBITMQ_USERNAME = ""
+RABBITMQ_PASSWORD = ""
 
 # Create credentials
 credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
