@@ -6,8 +6,8 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - ELASTIC_USER=${{ secrets.ELASTICSEARCH_USER }}
-      - ELASTIC_PASSWORD=${{ secrets.ELASTICSEARCH_PASSWORD }}
+      - "ELASTICSEARCH_USER=$$ELASTICSEARCH_USER"
+      - "ELASTICSEARCH_PASSWORD=$$ELASTICSEARCH_PASSWORD"
       - xpack.security.enabled=false # Disable security for now
     ports:
       - "30051:9200"
