@@ -21,6 +21,9 @@ jobs:
 
             - name: Set Up Docker Buildx
               uses: docker/setup-buildx-action@v3
+              
+            - name: Display Docker Compose file content
+              run: cat docker-compose.yml
 
             - name: Build Docker Images
               run: docker compose build
