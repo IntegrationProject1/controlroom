@@ -4,12 +4,10 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
-    env_file:
-      - ../.env
     environment:
       - discovery.type=single-node
-      - ELASTIC_USER=${ELASTICSEARCH_USER}
-      - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD}
+      - ELASTIC_USER=${{ secrets.ELASTICSEARCH_USER }}
+      - ELASTIC_PASSWORD=${{ secrets.ELASTICSEARCH_PASSWORD }}
       - xpack.security.enabled=false # Disable security for now
     ports:
       - "30051:9200"
