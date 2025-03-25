@@ -36,6 +36,7 @@ services:
     volumes:
       - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     ports:
+
       - "30053:5044" # Beats input
       - "30054:5000/tcp" # Logstash TCP input
       - "30055:5000/udp" # Logstash UDP input
