@@ -1,8 +1,11 @@
-name: ELK CI/CD Develop Pipelinge
+name: ELK CI/CD Develop Pipeline
 
 on: 
     push: 
         branches: 
+            - development
+    pull_request:
+        branches:
             - development
 
 jobs:
@@ -13,6 +16,8 @@ jobs:
         steps:
             - name: Checkout Repository
               uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
             - name: Set Up Docker Buildx
               uses: docker/setup-buildx-action@v3
