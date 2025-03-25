@@ -1,5 +1,7 @@
 import pika
 import time
+import datetime
+import random
 
 def dict_to_xml(log):
     """Convert dictionary to the specified XML format."""
@@ -19,45 +21,70 @@ def dict_to_xml(log):
     return xml.strip()
 
 # RabbitMQ Configuration
-RABBITMQ_HOST = "localhost"  # Change if RabbitMQ is hosted remotely
+RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
+RABBITMQ_PORT = 30020
 RABBITMQ_QUEUE = "controlroom.heartbeat.test"
+RABBITMQ_USERNAME = "ehbstudent"
+RABBITMQ_PASSWORD = "wpqjf9mI3DKZdZDaa!"
+
+# Create credentials
+credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
+
+# Connection parameters
+connection_params = pika.ConnectionParameters(
+    host=RABBITMQ_HOST,
+    port=RABBITMQ_PORT,
+    credentials=credentials
+)
 
 # Connect to RabbitMQ
-connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
+connection = pika.BlockingConnection(connection_params)
 channel = connection.channel()
 
 # Declare Queue
 channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
 
 def generate_dummy_logs():
-    """Generate dummy logs."""
-    logs = [
-        {
-            "ServiceName": "Kassa",
-            "Status": "OK",
-            "Timestamp": "2023-10-10T12:34:56.789Z",
-            "HeartBeatInterval": "60",
-            "Version": "1.0.0",
-            "Host": "hostname_123",
-            "Environment": "production"
-        }
-    ]
+    """Generate a list of dummy logs with random values."""
+    statuses = ["OK", "WARNING", "ERROR"]
+    environments = ["production", "staging", "development"]
+    
+    logs = []
+    for i in range(5):  # Generate 5 dummy logs
+        logs.append({
+            "ServiceName": f"TestService_{i}",
+            "Status": random.choice(statuses),
+            "Timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "HeartBeatInterval": str(random.randint(30, 120)),
+            "Version": f"1.{random.randint(0, 9)}.{random.randint(0, 9)}",
+            "Host": f"host_{random.randint(100, 999)}",
+            "Environment": random.choice(environments)
+        })
     return logs
 
-def publish_logs(logs):
-    """Publish dummy logs to RabbitMQ in XML format."""
-    for log in logs:
-        message = dict_to_xml(log)
-        channel.basic_publish(
-            exchange='',
-            routing_key=RABBITMQ_QUEUE,
-            body=message,
-            properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
-        )
-        print(f"Sent: {message}")
-        time.sleep(1)  # Simulate log generation delay
+def publish_logs():
+    """Continuously check for new logs and send them every 10 seconds."""
+    last_sent_data = None
+    
+    while True:
+        logs = generate_dummy_logs()
+        
+        if logs != last_sent_data:  # Check if new data is available
+            for log in logs:
+                message = dict_to_xml(log)
+                channel.basic_publish(
+                    exchange='',
+                    routing_key=RABBITMQ_QUEUE,
+                    body=message,
+                    properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
+                )
+                print(f"Sent: {message}")
+                time.sleep(10)  # Wait 10 seconds before sending the next log
+            last_sent_data = logs  # Store last sent data
+        else:
+            print("No new data. Waiting...")
+            time.sleep(10)  # Keep waiting if no new data
 
 if __name__ == "__main__":
-    logs = generate_dummy_logs()
-    publish_logs(logs)
+    publish_logs()
     connection.close()
