@@ -5,7 +5,7 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
     env_file:
-      - /home/ehbstudent/.env
+      - ../.env
     environment:
       - discovery.type=single-node
       - ELASTIC_USER=${ELASTICSEARCH_USER}
