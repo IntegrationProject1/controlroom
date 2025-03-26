@@ -39,6 +39,10 @@ services:
     networks:
       - elk
 
+
+  consumer: 
+    build: ./consumer    
+
 volumes:
   esdata:
 

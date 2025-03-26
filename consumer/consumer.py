@@ -3,9 +3,9 @@ import json
 import requests
  
 # Configuratie
-RABBITMQ_HOST = "108.143.20.102"  # IP-adres van de VM
+RABBITMQ_HOST = "rabbitmq"  # IP-adres van de VM
 RABBITMQ_PORT = 30020
-QUEUE_NAME = "consumer.controlroom.heartbeat"
+QUEUE_NAME = "controlroom.heartbeat.test"
 LOGSTASH_URL = "http://108.143.20.102:30053"  # Logstash draait ook op de VM
  
 def process_message(body):
