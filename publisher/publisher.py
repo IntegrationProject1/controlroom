@@ -33,10 +33,51 @@ RABBITMQ_USERNAME = "guest"
 RABBITMQ_PASSWORD = "guest"
 
 
+def generate_dummy_logs():
+    """Generate a list of dummy logs with random values."""
+    statuses = ["OK", "WARNING", "ERROR"]
+    environments = ["production", "staging", "development"]
+    
+    logs = []
+    for i in range(5):  # Generate 5 dummy logs
+        logs.append({
+            "ServiceName": f"TestService_{i}",
+            "Status": random.choice(statuses),
+            "Timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "HeartBeatInterval": str(random.randint(30, 120)),
+            "Version": f"1.{random.randint(0, 9)}.{random.randint(0, 9)}",
+            "Host": f"host_{random.randint(100, 999)}",
+            "Environment": random.choice(environments)
+        })
+    return logs
+
+def publish_logs(channel):
+    """Continuously check for new logs and send them every 10 seconds."""
+    last_sent_data = None
+    
+    while True:
+        logs = generate_dummy_logs()
+        
+        if logs != last_sent_data:  # Check if new data is available
+            for log in logs:
+                message = dict_to_xml(log)
+                channel.basic_publish(
+                    exchange='',
+                    routing_key=QUEUE_NAME,
+                    body=message,
+                    properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
+                )
+                print(f"Sent: {message}")
+                time.sleep(10)  # Wait 10 seconds before sending the next log
+            last_sent_data = logs  # Store last sent data
+        else:
+            print("No new data. Waiting...")
+            time.sleep(10)  # Keep waiting if no new data
+
 
 # Connect to RabbitMQ
 
-def connect():
+def main():
     """Maakt verbinding met RabbitMQ en start de publisher"""
     time.sleep(60) # Wacht 60 seconden om te verzekeren dat RabbitMQ en Logstash klaar zijn
     for attempt in range(10):  # Retry up to 5 times
@@ -46,8 +87,9 @@ def connect():
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
+            channel.queue_declare(queue=QUEUE_NAME, durable=True)
             print("Connected to RabbitMQ")
-            return connection, channel
+            break
             # Exit the loop if the connection is successful
         except pika.exceptions.AMQPConnectionError as e:
             print(f"❌ Fout bij verbinden met RabbitMQ: {e}")
@@ -59,6 +101,10 @@ def connect():
             time.sleep(5)  # Wait 5 seconds before retrying
     else:
         print("❌ Kon geen verbinding maken met RabbitMQ na meerdere pogingen.")
+    
+    publish_logs(channel)
+    connection.close()
+    
 
 # time.sleep(60)  # Wait 60 seconds to ensure that RabbitMQ is ready, only for local development
 # for attempt in range(10):  
@@ -78,51 +124,12 @@ def connect():
 # channel = connection.channel()
 # channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
 
-channel.queue_declare(queue=QUEUE_NAME, durable=True)
 
 
-def generate_dummy_logs():
-    """Generate a list of dummy logs with random values."""
-    statuses = ["OK", "WARNING", "ERROR"]
-    environments = ["production", "staging", "development"]
-    
-    logs = []
-    for i in range(5):  # Generate 5 dummy logs
-        logs.append({
-            "ServiceName": f"TestService_{i}",
-            "Status": random.choice(statuses),
-            "Timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-            "HeartBeatInterval": str(random.randint(30, 120)),
-            "Version": f"1.{random.randint(0, 9)}.{random.randint(0, 9)}",
-            "Host": f"host_{random.randint(100, 999)}",
-            "Environment": random.choice(environments)
-        })
-    return logs
 
-def publish_logs():
-    """Continuously check for new logs and send them every 10 seconds."""
-    last_sent_data = None
-    
-    while True:
-        logs = generate_dummy_logs()
-        
-        if logs != last_sent_data:  # Check if new data is available
-            for log in logs:
-                message = dict_to_xml(log)
-                channel.basic_publish(
-                    exchange='',
-                    routing_key=RABBITMQ_QUEUE,
-                    body=message,
-                    properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
-                )
-                print(f"Sent: {message}")
-                time.sleep(10)  # Wait 10 seconds before sending the next log
-            last_sent_data = logs  # Store last sent data
-        else:
-            print("No new data. Waiting...")
-            time.sleep(10)  # Keep waiting if no new data
+
+
+
 
 if __name__ == "__main__":
-    connect()
-    publish_logs()
-    connection.close()
+    main()
