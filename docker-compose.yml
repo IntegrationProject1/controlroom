@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   elasticsearch:
@@ -8,11 +8,19 @@ services:
       - ../.env
     environment:
       - discovery.type=single-node
-      - ELASTIC_USER=${ELASTICSEARCH_USER}
-      - ELASTIC_PASSWORD=${ELASTICSEARCH_PASSWORD}
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
+      - "ELASTICSEARCH_USER=$$ELASTICSEARCH_USER"
+      - "ELASTICSEARCH_PASSWORD=$$ELASTICSEARCH_PASSWORD"
       - xpack.security.enabled=false # Disable security for now
+      - "xpack.ml.enabled=false" # Disable machine learning
     ports:
       - "30051:9200"
+    ulimits:
+      memlock: -1
+    deploy:
+      resources:
+        limits:
+          memory: 1GB
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
@@ -29,10 +37,12 @@ services:
       - elk
 
   logstash:
-    image: docker.elastic.co/logstash/logstash:8.7.0
+    image: docker.elastic.co/logstash/logstash:8.17.3
     container_name: logstash
     depends_on:
       - elasticsearch
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     volumes:
       - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     ports:
@@ -42,13 +52,11 @@ services:
     networks:
       - elk
 
-
-  consumer: 
-    build: ./consumer    
+  consumer:
+    build: ./consumer
 
 volumes:
   esdata:
-
 
 networks:
   elk:
