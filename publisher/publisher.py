@@ -21,8 +21,12 @@ def dict_to_xml(log):
     return xml.strip()
 
 # RabbitMQ Configuration
-RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
-RABBITMQ_PORT = 30020
+# RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
+# RABBITMQ_PORT = 30020
+# Rabbitmq host and port for local development:
+RABBITMQ_HOST = "localhost"
+RABBITMQ_PORT = 5672
+
 RABBITMQ_QUEUE = "controlroom.heartbeat.test"
 RABBITMQ_USERNAME = ""
 RABBITMQ_PASSWORD = ""
