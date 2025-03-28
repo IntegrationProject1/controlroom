@@ -21,7 +21,7 @@ jobs:
         run: docker compose build
 
       - name: Set environment variables from GitHub Secrets
-          run: |
+        run: |
           echo "ELASTICSEARCH_USER=${{ secrets.ELASTICSEARCH_USER }}" >> $GITHUB_ENV    
           echo "ELASTICSEARCH_PASSWORD=${{ secrets.ELASTICSEARCH_PASSWORD }}" >> $GITHUB_ENV
 
@@ -32,12 +32,12 @@ jobs:
           docker ps
           docker inspect --format='{{json .State.Health}}' $(docker ps -q) | jq
           docker compose down
-                
+
     deploy:
-        name: Deploy To Server
-        needs: build
-        runs-on: ubuntu-latest
-        environment: environment
+      name: Deploy To Server
+      needs: build
+      runs-on: ubuntu-latest
+      environment: environment
 
   deploy:
     name: Deploy To Server
