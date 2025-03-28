@@ -42,11 +42,25 @@ connection_params = pika.ConnectionParameters(
 )
 
 # Connect to RabbitMQ
-connection = pika.BlockingConnection(connection_params)
-channel = connection.channel()
 
-# Declare Queue
+time.sleep(60)  # Wait 60 seconds to ensure that RabbitMQ is ready, for local development
+for attempt in range(10):  
+    try:
+        print(f"Connecting to RabbitMQ (attempt {attempt + 1})...")
+        connection = pika.BlockingConnection(connection_params)
+        
+        print("Connected to RabbitMQ")
+        break
+    except pika.exceptions.AMQPConnectionError as e:
+        print(f"Error connecting to RabbitMQ: {e}")
+        time.sleep(5)
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        time.sleep(5)
+
+channel = connection.channel()
 channel.queue_declare(queue=RABBITMQ_QUEUE, durable=True)
+
 
 def generate_dummy_logs():
     """Generate a list of dummy logs with random values."""
