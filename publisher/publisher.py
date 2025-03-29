@@ -68,11 +68,11 @@ def publish_logs(channel):
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
                 )
                 print(f"Sent: {message}")
-                time.sleep(10)  # Wait 10 seconds before sending the next log
+                time.sleep(1)  # Wait 1 seconds before sending the next log
             last_sent_data = logs  # Store last sent data
         else:
             print("No new data. Waiting...")
-            time.sleep(10)  # Keep waiting if no new data
+            time.sleep(1)  # Keep waiting if no new data
 
 
 # Connect to RabbitMQ
