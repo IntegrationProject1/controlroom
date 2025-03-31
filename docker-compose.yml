@@ -2,8 +2,6 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
-    env_file:
-      - ../.env
     environment:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
@@ -33,8 +31,6 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:8.17.3
     container_name: kibana
-    env_file:
-      - ../.env
     depends_on:
       - elasticsearch
     ports:
@@ -47,8 +43,6 @@ services:
   logstash:
     image: docker.elastic.co/logstash/logstash:8.17.3
     container_name: logstash
-    env_file:
-      - ../.env
     environment:
       - LOGSTASH_INTERNAL_PASSWORD=${LOGSTASH_INTERNAL_PASSWORD}
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
@@ -78,11 +72,9 @@ services:
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: consumer
-    env_file:
-      - ../.env
     environment:
-      - RabbitMQ_USER=${RABBITMQ_USER}
-      - RabbitMQ_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
     depends_on:
       - elasticsearch
       - logstash
@@ -92,11 +84,9 @@ services:
 
   publisher: #Will send test messages to RabbitMQ, replicating real services
     container_name: publisher
-    env_file:
-      - ../.env
     environment:
-      - RabbitMQ_USER=${RABBITMQ_USER}
-      - RabbitMQ_PASS=${RABBITMQ_PASS}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
     depends_on:
       - elasticsearch
     build: ./publisher
