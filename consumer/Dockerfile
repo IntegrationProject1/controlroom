@@ -1,3 +1,4 @@
+# Makes a container for the publisher
 FROM python:3.10-slim
 
 WORKDIR /app

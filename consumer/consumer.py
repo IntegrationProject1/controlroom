@@ -5,16 +5,17 @@ import traceback
 import time
 
 # Configuratie
-RABBITMQ_HOST = "rabbitmq"  # IP-adres van de VM
+RABBITMQ_HOST = "rabbitmq"  
+# Rabbitmq port for local development:
 RABBITMQ_PORT = 5672
 QUEUE_NAME = "controlroom.heartbeat.test"
-#LOGSTASH_URL = "http://localhost:5044"
+#logstash url for local development
 LOGSTASH_URL = "http://logstash:5044"
 
 def process_message(body):
-    """Verwerkt het bericht en stuurt het door naar Logstash"""
+    """Processes the message and sends it to Logstash"""
     try:
-        # Decodeer het XML bericht
+        # Decode the XML message
         message = body.decode()
         root = ET.fromstring(message)
 
@@ -27,7 +28,7 @@ def process_message(body):
         host = root.find('.//Host').text
         environment = root.find('.//Environment').text
 
-        # Maak een gestructureerd bericht met de geëxtraheerde gegevens
+        # Makes a dictionary from the extracted data
         message_dict = {
             "ServiceName": service_name,
             "Status": status,
@@ -38,55 +39,55 @@ def process_message(body):
             "Environment": environment
         }
 
-        print(f"✅ Ontvangen bericht: {message_dict}")
+        print(f"✅ Received message: {message_dict}")
         
-        # Verzend het bericht naar Logstash
+        # Send the message to Logstash
         if "Status" not in message_dict or "Timestamp" not in message_dict:
-            print("⚠️ Fout: Bericht mist verplichte velden (status/timestamp)")
+            print("⚠️ Error: Message is missing fields (status/timestamp)")
             return
 
         response = requests.post(LOGSTASH_URL, json=message_dict)
         if response.status_code in [200, 201]:
-            print("📨 Bericht succesvol doorgestuurd naar Logstash")
+            print("📨  Message succesfully sent to Logstash")
         else:
-            print(f"⚠️ Fout bij verzenden naar Logstash: {response.status_code} - {response.text}")
+            print(f"⚠️ Error sending message to logstash: {response.status_code} - {response.text}")
     
     except ET.ParseError:
-        print("⚠️ Fout: Ongeldig XML-formaat ontvangen")
+        print("⚠️ Error: Invalid XML message")
     except Exception as e:
-        print(f"❌ Fout bij verwerken van bericht: {e}")
+        print(f"❌ Error: {e}")
         traceback.print_exc()
 
 def callback(ch, method, properties, body):
-    """Wordt aangeroepen bij een nieuw bericht in de queue"""
+    """Gets called when a message is received"""
     process_message(body)
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def connect():
-    """Maakt verbinding met RabbitMQ en start de consumer"""
-    time.sleep(60)  # Wacht 60 seconden om te verzekeren dat RabbitMQ en Logstash klaar zijn
+    """Connects to RabbitMQ and starts consuming messages"""
+    time.sleep(60)  # Wait for RabbitMQ to start (Local development)
     for attempt in range(10):  # Retry up to 10 times
         try:
-            print(f"🔄 Verbinden met RabbitMQ (poging {attempt + 1})...")
-            credentials = pika.PlainCredentials('guest', 'guest')
+            print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
+            credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
             channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
-            print("🎧 Wachten op berichten...")
+            print("🎧 Waiting for messages...")
             channel.start_consuming()
             break  # Exit the loop if the connection is successful
         except pika.exceptions.AMQPConnectionError as e:
-            print(f"❌ Fout bij verbinden met RabbitMQ: {e}")
+            print(f"❌ Error connecting to RabbitMQ: {e}")
             traceback.print_exc()  # Log the full traceback for debugging
             time.sleep(5)  # Wait 5 seconds before retrying
         except Exception as e:
-            print(f"❌ Onverwachte fout: {e}")
+            print(f"❌ Unexpected error: {e}")
             traceback.print_exc()  # Log unexpected errors
             time.sleep(5)  # Wait 5 seconds before retrying
     else:
-        print("❌ Kon geen verbinding maken met RabbitMQ na meerdere pogingen.")
+        print("❌ Unable to connect to RabbitMQ after several attempts.")
 
 if __name__ == "__main__":
     connect()

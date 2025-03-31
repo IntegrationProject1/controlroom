@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
@@ -15,7 +13,7 @@ services:
       - "ELASTICSEARCH_USER=elastic"
       - "ELASTICSEARCH_PASSWORD=changeme"
       - xpack.security.enabled=false # Disable security for now
-      - "xpack.ml.enabled=false" # Disable machine learning
+      - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
       # - "30051:9200"
       # Ports for local development
@@ -25,7 +23,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1GB
+          memory: 1GB # Limit memory usage
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
@@ -55,7 +53,7 @@ services:
     ports:
       # - "30053:5044" # Beats input
       # - "30054:5000/tcp" # Logstash TCP input
-      # - "30055:5000/udp" # Logstash UDP input
+      # - "30054:5000/udp" # Logstash UDP input
       # Ports for local development
       - "5044:5044" # Beats input
       - "5000:5000/tcp" # Logstash TCP input
@@ -72,7 +70,7 @@ services:
     networks:
       - elk
 
-  consumer:
+  consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: consumer
     depends_on:
       - rabbitmq
@@ -80,7 +78,7 @@ services:
     networks:
       - elk
 
-  publisher:
+  publisher: #Will send test messages to RabbitMQ, replicating real services
     container_name: publisher
     depends_on:
       - rabbitmq

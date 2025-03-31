@@ -1,3 +1,4 @@
+# Makes a Python image with the publisher.py script
 FROM python:3.10-slim
 
 WORKDIR /app
