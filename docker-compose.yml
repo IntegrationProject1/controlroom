@@ -1,24 +1,29 @@
-version: '3.8'
-
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
+    # env_file:
+    #   - ../.env
     environment:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
-      - "ELASTICSEARCH_USER=$$ELASTICSEARCH_USER"
-      - "ELASTICSEARCH_PASSWORD=$$ELASTICSEARCH_PASSWORD"
+      # - "ELASTICSEARCH_USER=$$ELASTICSEARCH_USER"
+      # - "ELASTICSEARCH_PASSWORD=$$ELASTICSEARCH_PASSWORD"
+      # Credentials for local testing:
+      - "ELASTICSEARCH_USER=elastic"
+      - "ELASTICSEARCH_PASSWORD=changeme"
       - xpack.security.enabled=false # Disable security for now
-      - "xpack.ml.enabled=false" # Disable machine learning
+      - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
-      - "30051:9200"
+      # - "30051:9200"
+      # Ports for local development
+      - "9200:9200"
     ulimits:
       memlock: -1
     deploy:
       resources:
         limits:
-          memory: 1GB
+          memory: 1GB # Limit memory usage
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
@@ -30,7 +35,9 @@ services:
     depends_on:
       - elasticsearch
     ports:
-      - "30052:5601"
+      # - "30052:5601"
+      # Ports for local development
+      - "5601:5601"
     networks:
       - elk
 
@@ -44,15 +51,43 @@ services:
     volumes:
       - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     ports:
-      - "30053:5044" # Beats input
-      - "30054:5000/tcp" # Logstash TCP input
-      - "30055:5000/udp" # Logstash UDP input
+      # - "30053:5044" # Beats input
+      # - "30054:5000/tcp" # Logstash TCP input
+      # - "30054:5000/udp" # Logstash UDP input
+      # Ports for local development
+      - "5044:5044" # Beats input
+      - "5000:5000/tcp" # Logstash TCP input
+      - "5000:5000/udp" # Logstash UDP input
+    networks:
+      - elk
+  #RabbitMQ Instance for local development, comment out for deployment on VM
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - elk
+
+  consumer: #Will receive messages from RabbitMQ and pass them to Logstash
+    container_name: consumer
+    depends_on:
+      - rabbitmq
+    build: ./consumer
+    networks:
+      - elk
+
+  publisher: #Will send test messages to RabbitMQ, replicating real services
+    container_name: publisher
+    depends_on:
+      - rabbitmq
+    build: ./publisher
     networks:
       - elk
 
 volumes:
   esdata:
-
 
 networks:
   elk:
