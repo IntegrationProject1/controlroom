@@ -6,13 +6,16 @@ import time
 import os
 
 # Configuratie
-RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
-RABBITMQ_PORT = 30020
-RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
-RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
+#RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
+RABBITMQ_HOST = "rabbitmq" 
+#RABBITMQ_PORT = 30020
+#RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
+RABBITMQ_USERNAME = "guest"
+#RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
+RABBITMQ_PASSWORD = "guest"
 LOGSTASH_URL = "http://logstash:5044"
 # Rabbitmq port for local development:
-#RABBITMQ_PORT = 5672
+RABBITMQ_PORT = 5672
 QUEUE_NAME = "controlroom.heartbeat.ping"
 #logstash url for local development
 # LOGSTASH_URL = "http://logstash:5044"
