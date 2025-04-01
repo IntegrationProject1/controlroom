@@ -89,7 +89,7 @@ def publish_logs(channel):
 
 def main():
     """Connecting to RabbitMQ and starting the publisher."""
-    # time.sleep(60) # Waits for RabbitMQ to start (Local development)
+    time.sleep(60) # Waits for RabbitMQ to start (Local development)
     for attempt in range(10):  # Retry up to 10 times
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
