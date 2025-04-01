@@ -4,7 +4,7 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
+      - ES_JAVA_OPTS=-Xms512m -Xmx2g # Limit memory usage
       - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
       - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
       # Credentials for local testing:
@@ -22,7 +22,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1GB # Limit memory usage
+          memory: 2GB # Limit memory usage
     volumes:
       - esdata:/usr/share/elasticsearch/data
     networks:
