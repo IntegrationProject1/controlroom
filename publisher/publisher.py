@@ -24,17 +24,21 @@ def dict_to_xml(log):
     return xml.strip()
 
 # RabbitMQ Configuration
-RABBITMQ_PORT = 30020
-# Rabbitmq host and port for local development:
-RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
-# RABBITMQ_PORT = 5672
+# RABBITMQ_PORT = 30020
 
+#RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
+#RABBITMQ_PORT = 30020
+#RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
+#RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
+
+
+# Rabbitmq host and port for local development:
+
+RABBITMQ_USERNAME = "guest"
+RABBITMQ_PASSWORD = "guest"
 QUEUE_NAME = "controlroom.heartbeat.ping"
-RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
-RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
-# Rabbitmq credentials for local development:
-# RABBITMQ_USERNAME = "guest"
-# RABBITMQ_PASSWORD = "guest"
+RABBITMQ_HOST = "rabbitmq"
+RABBITMQ_PORT = 5672
 
 
 # Generate dummy logs

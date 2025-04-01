@@ -14,9 +14,9 @@ services:
       - xpack.security.transport.ssl.enabled=false
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
-      - "30051:9200"
+      #- "30051:9200"
       # Ports for local development
-      # - "9200:9200"
+      - "9200:9200"
     ulimits:
       memlock: -1
     deploy:
@@ -34,9 +34,10 @@ services:
     depends_on:
       - elasticsearch
     ports:
-      - "30052:5601"
+      #VM Ports
+      #- "30052:5601"
       # Ports for local development
-      # - "5601:5601"
+      - "5601:5601"
     networks:
       - project_network
 
@@ -51,24 +52,26 @@ services:
     volumes:
       - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     ports:
-      - "30053:5044" # Beats input
-      - "30054:5000/tcp" # Logstash TCP input
-      - "30054:5000/udp" # Logstash UDP input
+      #VM Ports
+      #- "30053:5044" # Beats input
+      #- "30054:5000/tcp" # Logstash TCP input
+      #- "30054:5000/udp" # Logstash UDP input
       # Ports for local development
-      # - "5044:5044" # Beats input
-      # - "5000:5000/tcp" # Logstash TCP input
-      # - "5000:5000/udp" # Logstash UDP input
+      - "5044:5044" # Beats input
+      - "5000:5000/tcp" # Logstash TCP input
+      - "5000:5000/udp" # Logstash UDP input
     networks:
       - project_network
   #RabbitMQ Instance for local development, comment out for deployment on VM
-  # rabbitmq:
-  #   image: rabbitmq:3-management
-  #   container_name: rabbitmq
-  #   ports:
-  #     - "5672:5672"
-  #     - "15672:15672"
-  #   networks:
-  #     - elk
+  rabbitmq:
+
+  image: rabbitmq:3-management
+  container_name: rabbitmq
+  ports:
+  - "5672:5672"
+  - "15672:15672"
+  networks:
+  - elk
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: consumer
