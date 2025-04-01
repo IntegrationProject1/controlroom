@@ -73,7 +73,7 @@ def publish_logs(channel):
                 message = dict_to_xml(log)
                 channel.basic_publish(
                     exchange='',
-                    routing_key='',
+                    routing_key='controlroom.heartbeat.test',
                     body=message,
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
                 )
