@@ -3,23 +3,14 @@ import xml.etree.ElementTree as ET
 import requests
 import traceback
 import time
-import os
 
 # Configuratie
-#RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
-RABBITMQ_HOST = "rabbitmq" 
-#RABBITMQ_PORT = 30020
-#RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
-RABBITMQ_USERNAME = "guest"
-#RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
-RABBITMQ_PASSWORD = "guest"
-LOGSTASH_URL = "http://logstash:5044"
+RABBITMQ_HOST = "rabbitmq"  
 # Rabbitmq port for local development:
 RABBITMQ_PORT = 5672
-QUEUE_NAME = "controlroom.heartbeat.ping"
+QUEUE_NAME = "controlroom.heartbeat.test"
 #logstash url for local development
-# LOGSTASH_URL = "http://logstash:5044"
-
+LOGSTASH_URL = "http://logstash:5044"
 
 def process_message(body):
     """Processes the message and sends it to Logstash"""
@@ -74,17 +65,15 @@ def callback(ch, method, properties, body):
 
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
-    # time.sleep(60)  # Wait for RabbitMQ to start (Local development)
+    time.sleep(60)  # Wait for RabbitMQ to start (Local development)
     for attempt in range(10):  # Retry up to 10 times
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
-            credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD) #credentials for local development
+            credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
-            channel.exchange_declare(exchange='heartbeat', exchange_type='fanout', durable=True)
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
-            channel.queue_bind(exchange='heartbeat', queue=QUEUE_NAME)
             channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
             print("🎧 Waiting for messages...")
             channel.start_consuming()
