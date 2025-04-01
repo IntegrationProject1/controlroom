@@ -36,7 +36,7 @@ def dict_to_xml(log):
 
 RABBITMQ_USERNAME = "guest"
 RABBITMQ_PASSWORD = "guest"
-QUEUE_NAME = "controlroom.heartbeat.ping"
+QUEUE_NAME = "controlroom.heartbeat.test"
 RABBITMQ_HOST = "rabbitmq"
 RABBITMQ_PORT = 5672
 
@@ -72,7 +72,7 @@ def publish_logs(channel):
             for log in logs:
                 message = dict_to_xml(log)
                 channel.basic_publish(
-                    exchange='heartbeat',
+                    exchange='',
                     routing_key='',
                     body=message,
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
@@ -93,8 +93,8 @@ def main():
     for attempt in range(10):  # Retry up to 10 times
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
-            credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
-            # credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
+            #credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
+            credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
