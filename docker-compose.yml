@@ -12,7 +12,7 @@ services:
       # Credentials for local testing:
       - "ELASTICSEARCH_USER=elastic"
       - "ELASTICSEARCH_PASSWORD=changeme"
-      - xpack.security.enabled=false # Disable security for now
+      - xpack.security.enabled=true # Disable security for now
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
       # - "30051:9200"
