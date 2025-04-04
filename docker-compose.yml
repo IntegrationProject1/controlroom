@@ -2,16 +2,14 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
-    # env_file:
-    #   - ../.env
+    env_file:
+      - .env
     environment:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
-      # - "ELASTICSEARCH_USER=$$ELASTICSEARCH_USER"
-      # - "ELASTICSEARCH_PASSWORD=$$ELASTICSEARCH_PASSWORD"
       # Credentials for local testing:
-      - "ELASTICSEARCH_USER=elastic"
-      - "ELASTICSEARCH_PASSWORD=changeme"
+      - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
+      - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
       - xpack.security.enabled=true # Disable security for now
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
@@ -34,6 +32,10 @@ services:
     container_name: kibana
     depends_on:
       - elasticsearch
+    env_file:
+      - .env
+    environment:
+      - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
     ports:
       # - "30052:5601"
       # Ports for local development
@@ -47,7 +49,10 @@ services:
     depends_on:
       - elasticsearch
     environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_HOSTS=${ELASTICSEARCH_HOSTS} 
+      - LOGTASH_INTERNAL_PASSWORD=${LOGTASH_INTERNAL_PASSWORD}
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - LOGSTASH_PORT=${LOGSTASH_PORT}
     volumes:
       - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
     ports:
@@ -64,6 +69,11 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
+    environment: 
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      QUEUE_NAME: ${QUEUE_NAME}
     ports:
       - "5672:5672"
       - "15672:15672"

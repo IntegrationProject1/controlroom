@@ -3,6 +3,10 @@ import xml.etree.ElementTree as ET
 import requests
 import traceback
 import time
+import os 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Configuratie
 RABBITMQ_HOST = "rabbitmq"  
@@ -69,12 +73,12 @@ def connect():
     for attempt in range(10):  # Retry up to 10 times
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
-            credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
-            connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
+            credentials = pika.PlainCredentials(os.getenv("RABBITMQ_USER"), os.getenv("RABBITMQ_PASSWORD")) #credentials for local development
+            connection_params = pika.ConnectionParameters(host=os.getenv("RABBITMQ_HOST"), port=os.getenv("RABBITMQ_PORT"), credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
-            channel.queue_declare(queue=QUEUE_NAME, durable=True)
-            channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
+            channel.queue_declare(queue=os.getenv("QUEUE_NAME"), durable=True)
+            channel.basic_consume(queue=os.getenv("QUEUE_NAME"), on_message_callback=callback)
             print("🎧 Waiting for messages...")
             channel.start_consuming()
             break  # Exit the loop if the connection is successful

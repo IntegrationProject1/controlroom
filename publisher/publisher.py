@@ -4,6 +4,9 @@ import datetime
 import random
 import traceback
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Function to convert a dictionary to XML
 def dict_to_xml(log):
@@ -28,17 +31,7 @@ def dict_to_xml(log):
 
 #RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
 #RABBITMQ_PORT = 30020
-#RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
-#RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
 
-
-# Rabbitmq host and port for local development:
-
-RABBITMQ_USERNAME = "guest"
-RABBITMQ_PASSWORD = "guest"
-QUEUE_NAME = "controlroom.heartbeat.test"
-RABBITMQ_HOST = "rabbitmq"
-RABBITMQ_PORT = 5672
 
 
 # Generate dummy logs
@@ -94,11 +87,11 @@ def main():
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
             #credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
-            credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
-            connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
+            credentials = pika.PlainCredentials(os.getenv("RABBITMQ_USER"), os.getenv("RABBITMQ_PASSWORD")) #credentials for local development
+            connection_params = pika.ConnectionParameters(host=os.getenv("RABBITMQ_HOST"), port=os.getenv("RABBITMQ_PORT"), credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
-            channel.queue_declare(queue=QUEUE_NAME, durable=True)
+            channel.queue_declare(queue=os.getenv("QUEUE_NAME"), durable=True)
             print("Connected to RabbitMQ")
             break
             # Exit the loop if the connection is successful
