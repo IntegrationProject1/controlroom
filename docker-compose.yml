@@ -55,7 +55,9 @@ services:
       - LOGSTASH_URL=${LOGSTASH_URL}
       - LOGSTASH_PORT=${LOGSTASH_PORT}
     volumes:
-      - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      # - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
     ports:
       # - "30053:5044" # Beats input
       # - "30054:5000/tcp" # Logstash TCP input
