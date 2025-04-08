@@ -4,7 +4,6 @@ services:
       - setup
     build:
       context: ./setup/
-
       args:
         ELASTIC_VERSION: ${ELASTIC_VERSION}
     init: true
@@ -23,10 +22,6 @@ services:
     depends_on:
       - elasticsearch
 
-
-
-
-
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
@@ -37,29 +32,25 @@ services:
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
       # Credentials for local testing:
       - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
-      
+
       - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
       - "ELASTIC_PASSWORD= ${ELASTIC_PASSWORD}"
-      - xpack.security.enabled=true 
+      - xpack.security.enabled=true
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
-      # - "30051:9200"
+      - "30051:9200"
       # Ports for local development
-      - "9200:9200"
+      # - "9200:9200"
     ulimits:
       memlock: -1
+    restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 2GB # Limit memory usage
     volumes:
-
       - esdata:/usr/share/elasticsearch/data
 
-
-      
-      
-      
     networks:
       - elk
 
@@ -74,13 +65,13 @@ services:
       - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
     volumes:
       - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
+    restart: unless-stopped
     ports:
-      # - "30052:5601"
+      - "30052:5601"
       # Ports for local development
-      - "5601:5601"
+      # - "5601:5601"
     networks:
       - elk
-      
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.17.3
@@ -90,7 +81,6 @@ services:
     env_file:
       - .env
     environment:
-      
       - LOGSTASH_INTERNAL_PASSWORD=${LOGSTASH_INTERNAL_PASSWORD}
       - ELASTICSEARCH_USERNAME=elastic
       - LOGSTASH_URL=${LOGSTASH_URL}
@@ -100,35 +90,35 @@ services:
       # - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
+    restart: unless-stopped
     ports:
-      # - "30053:5044" # Beats input
-      # - "30054:5000/tcp" # Logstash TCP input
-      # - "30054:5000/udp" # Logstash UDP input
+      - "30053:5044" # Beats input
+      - "30054:5000/tcp" # Logstash TCP input
+      - "30054:5000/udp" # Logstash UDP input
       # Ports for local development
-      - "5044:5044" # Beats input
-      - "5000:5000/tcp" # Logstash TCP input
-      - "5000:5000/udp" # Logstash UDP input
+      # - "5044:5044" # Beats input
+      # - "5000:5000/tcp" # Logstash TCP input
+      # - "5000:5000/udp" # Logstash UDP input
     networks:
       - elk
-
 
   #RabbitMQ Instance for local development, comment out for deployment on VM
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    environment: 
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      QUEUE_NAME: ${QUEUE_NAME}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - elk
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   container_name: rabbitmq
+  #   environment:
+  #     RABBITMQ_HOST: rabbitmq
+  #     RABBITMQ_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+  #     QUEUE_NAME: ${QUEUE_NAME}
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   networks:
+  #     - elk
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
-    container_name: consumer
+    container_name: controlroom_consumer
     depends_on:
       - rabbitmq
     build: ./consumer
@@ -137,9 +127,8 @@ services:
     env_file:
       - .env
 
-
   publisher: #Will send test messages to RabbitMQ, replicating real services
-    container_name: publisher
+    container_name: test_publisher
     depends_on:
       - rabbitmq
     build: ./publisher
