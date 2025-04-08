@@ -23,8 +23,7 @@ jobs:
           RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
           RABBITMQ_PASS=${{ secrets.RABBITMQ_PASS }}
           EOF
-          ls -la .env
-          cat .env
+
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
@@ -47,7 +46,7 @@ jobs:
           RABBITMQ_PASS: ${{ secrets.RABBITMQ_PASS }}
           LOGSTASH_INTERNAL_PASSWORD: ${{ secrets.LOGSTASH_INTERNAL_PASSWORD }}
         run: |
-          docker compose up -d
+          docker compose --env-file .env up -d
           sleep 10
           docker ps
           docker inspect --format='{{json .State.Health}}' $(docker ps -q) | jq
