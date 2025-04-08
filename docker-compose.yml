@@ -1,17 +1,37 @@
 services:
+  setup:
+    profiles:
+      - setup
+    build:
+      context: ./setup/
+      args:
+        ELASTIC_VERSION: ${ELASTIC_VERSION}
+    init: true
+    volumes:
+      - ./setup/entrypoint.sh:/entrypoint.sh:ro,Z
+      - ./setup/lib.sh:/lib.sh:ro,Z
+      - ./setup/roles:/roles:ro,Z
+    environment:
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
+      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
+    networks:
+      - elk
+    depends_on:
+      - elasticsearch
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms512m -Xmx2g # Limit memory usage
-      - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
-      - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
       # Credentials for local testing:
-      # - "ELASTICSEARCH_USER=elastic"
-      # - "ELASTICSEARCH_PASSWORD=changeme"
-      - xpack.security.enabled=false # Disable security for now
-      - xpack.security.transport.ssl.enabled=false
+      - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
+
+      - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
+      - "ELASTIC_PASSWORD= ${ELASTIC_PASSWORD}"
+      - xpack.security.enabled=true
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
       - "30051:9200"
@@ -19,37 +39,50 @@ services:
       # - "9200:9200"
     ulimits:
       memlock: -1
+    restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 2GB # Limit memory usage
     volumes:
       - esdata:/usr/share/elasticsearch/data
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
     networks:
-      - project_network
+      - elk
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.17.3
     container_name: kibana
     depends_on:
       - elasticsearch
+    environment:
+      - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
+    volumes:
+      - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
+    restart: unless-stopped
     ports:
       - "30052:5601"
       # Ports for local development
       # - "5601:5601"
     networks:
-      - project_network
+      - elk
 
   logstash:
     image: docker.elastic.co/logstash/logstash:8.17.3
     container_name: logstash
-    environment:
-      - LOGSTASH_INTERNAL_PASSWORD=${LOGSTASH_INTERNAL_PASSWORD}
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     depends_on:
       - elasticsearch
+    environment:
+      - LOGSTASH_INTERNAL_PASSWORD=${LOGSTASH_INTERNAL_PASSWORD}
+      - ELASTICSEARCH_USERNAME=elastic
+      - LOGSTASH_URL=${LOGSTASH_URL}
+      - LOGSTASH_PORT=${LOGSTASH_PORT}
+      - "elasticsearch.username: elastic"
     volumes:
-      - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      # - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
+    restart: unless-stopped
     ports:
       - "30053:5044" # Beats input
       - "30054:5000/tcp" # Logstash TCP input
@@ -59,11 +92,17 @@ services:
       # - "5000:5000/tcp" # Logstash TCP input
       # - "5000:5000/udp" # Logstash UDP input
     networks:
-      - project_network
+      - elk
+
   #RabbitMQ Instance for local development, comment out for deployment on VM
   # rabbitmq:
   #   image: rabbitmq:3-management
   #   container_name: rabbitmq
+  #   environment:
+  #     RABBITMQ_HOST: rabbitmq
+  #     RABBITMQ_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+  #     QUEUE_NAME: ${QUEUE_NAME}
   #   ports:
   #     - "5672:5672"
   #     - "15672:15672"
@@ -71,31 +110,24 @@ services:
   #     - elk
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
-    container_name: consumer
-    environment:
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-    depends_on:
-      - elasticsearch
-      - logstash
+    container_name: controlroom_consumer
+    # depends_on:
+    #   - rabbitmq
     build: ./consumer
     networks:
-      - project_network
+      - elk
 
   publisher: #Will send test messages to RabbitMQ, replicating real services
-    container_name: publisher
-    environment:
-      - RABBITMQ_USER=${RABBITMQ_USER}
-      - RABBITMQ_PASS=${RABBITMQ_PASS}
-    depends_on:
-      - elasticsearch
+    container_name: test_publisher
+    # depends_on:
+    #   - rabbitmq
     build: ./publisher
     networks:
-      - project_network
+      - elk
 
 volumes:
   esdata:
 
 networks:
-  project_network:
+  elk:
     driver: bridge
