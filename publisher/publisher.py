@@ -29,8 +29,8 @@ def dict_to_xml(log):
 # RabbitMQ Configuration
 # RABBITMQ_PORT = 30020
 
-#RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
-#RABBITMQ_PORT = 30020
+RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
+RABBITMQ_PORT = 30020
 
 
 

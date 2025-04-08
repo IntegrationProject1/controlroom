@@ -11,8 +11,6 @@ services:
       - ./setup/entrypoint.sh:/entrypoint.sh:ro,Z
       - ./setup/lib.sh:/lib.sh:ro,Z
       - ./setup/roles:/roles:ro,Z
-    env_file:
-      - .env
     environment:
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
       LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
@@ -25,8 +23,6 @@ services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
-    env_file:
-      - .env
     environment:
       - discovery.type=single-node
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
@@ -50,7 +46,7 @@ services:
           memory: 2GB # Limit memory usage
     volumes:
       - esdata:/usr/share/elasticsearch/data
-
+      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
     networks:
       - elk
 
@@ -59,8 +55,6 @@ services:
     container_name: kibana
     depends_on:
       - elasticsearch
-    env_file:
-      - .env
     environment:
       - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
     volumes:
@@ -78,8 +72,6 @@ services:
     container_name: logstash
     depends_on:
       - elasticsearch
-    env_file:
-      - .env
     environment:
       - LOGSTASH_INTERNAL_PASSWORD=${LOGSTASH_INTERNAL_PASSWORD}
       - ELASTICSEARCH_USERNAME=elastic
@@ -124,8 +116,6 @@ services:
     build: ./consumer
     networks:
       - elk
-    env_file:
-      - .env
 
   publisher: #Will send test messages to RabbitMQ, replicating real services
     container_name: test_publisher
@@ -134,8 +124,6 @@ services:
     build: ./publisher
     networks:
       - elk
-    env_file:
-      - .env
 
 volumes:
   esdata:

@@ -14,16 +14,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Create .env from Github Secrets
-        run: |
-          cat <<EOF > .env
-          ELASTICSEARCH_USER=${{ secrets.ELASTICSEARCH_USER }}
-          ELASTICSEARCH_PASSWORD=${{ secrets.ELASTICSEARCH_PASSWORD }}
-          LOGSTASH_INTERNAL_PASSWORD=${{ secrets.LOGSTASH_INTERNAL_PASSWORD }}
-          RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
-          RABBITMQ_PASS=${{ secrets.RABBITMQ_PASS }}
-          EOF
-
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
@@ -46,7 +36,7 @@ jobs:
           RABBITMQ_PASS: ${{ secrets.RABBITMQ_PASS }}
           LOGSTASH_INTERNAL_PASSWORD: ${{ secrets.LOGSTASH_INTERNAL_PASSWORD }}
         run: |
-          docker compose --env-file .env up -d
+          docker compose up -d
           sleep 10
           docker ps
           docker inspect --format='{{json .State.Health}}' $(docker ps -q) | jq

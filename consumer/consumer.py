@@ -9,11 +9,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuratie
-RABBITMQ_HOST = "rabbitmq"  
-# Rabbitmq port for local development:
-RABBITMQ_PORT = 5672
+RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
+RABBITMQ_PORT = 30020
 QUEUE_NAME = "controlroom.heartbeat.test"
-#logstash url for local development
+#logstash url 
 LOGSTASH_URL = "http://logstash:5044"
 
 def process_message(body):
