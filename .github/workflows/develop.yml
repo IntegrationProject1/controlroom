@@ -23,6 +23,8 @@ jobs:
           RABBITMQ_USER=${{ secrets.RABBITMQ_USER }}
           RABBITMQ_PASS=${{ secrets.RABBITMQ_PASS }}
           EOF
+          ls -la .env
+          cat .env
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
