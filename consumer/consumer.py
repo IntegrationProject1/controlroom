@@ -9,9 +9,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuratie
-RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
-RABBITMQ_PORT = 30020
-QUEUE_NAME = "controlroom.heartbeat.test"
+# RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
+# RABBITMQ_PORT = 30020
+# QUEUE_NAME = "controlroom.heartbeat.test"
+RABBITMQ_HOST = "rabbitmq"  
+RABBITMQ_PORT = 5672
+QUEUE_NAME = "test_31"
 #logstash url 
 LOGSTASH_URL = "http://logstash:5044"
 
