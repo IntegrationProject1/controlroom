@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="Heartbeat">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="ServiceName" type="xs:string"/>
+        <xs:element name="Status" type="xs:string"/>
+        <xs:element name="Timestamp" type="xs:string"/> <!-- change to xs:dateTime if using correct format -->
+        <xs:element name="HeartBeatInterval" type="xs:string"/>
+        <xs:element name="Metadata">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="Version" type="xs:string"/>
+              <xs:element name="Host" type="xs:string"/>
+              <xs:element name="Environment" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
