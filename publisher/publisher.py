@@ -44,7 +44,7 @@ RABBITMQ_PORT = 5672
 # Generate dummy logs
 def generate_dummy_logs():
     """Generate a list of dummy logs with random values."""
-    statuses = ["OK"]
+    statuses = ["OK", "ERROR", "WARNING"]
     environments = ["production", "staging", "development"]
     
     logs = []
