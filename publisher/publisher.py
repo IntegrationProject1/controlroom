@@ -46,6 +46,18 @@ def generate_dummy_logs():
     """Generate a list of dummy logs with random values."""
     statuses = ["OK", "ERROR", "WARNING"]
     environments = ["production", "staging", "development"]
+    messages = {
+        "ERROR": [
+            "Failed to connect to database.",
+            "Null pointer exception in ServiceHandler.",
+            "Unhandled exception occurred during processing.",
+        ],
+        "WARNING": [
+            "High memory usage detected.",
+            "Slow response time from external API.",
+            "Service response delayed, retrying...",
+        ]
+    }
     
     logs = []
     for i in range(5):  # Generate 5 dummy logs
