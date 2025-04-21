@@ -123,7 +123,7 @@ def publish_logs(channel):
                         body=log_xml,
                         properties=pika.BasicProperties(delivery_mode=2)
                     )
-                    print(f"⚠️ Sent log message: {log_xml}")
+                    print(f"Sent log message: {log_xml}")
                 
                     time.sleep(1)  # Wait 1 seconds before sending the next log
             last_sent_data = logs  # Store last sent data
