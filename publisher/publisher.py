@@ -8,6 +8,10 @@ import os
 # Function to convert a dictionary to XML
 def dict_to_xml(log):
     """Convert dictionary to the specified XML format."""
+    
+    # Genereer de message-tag los
+    message_tag = f"<Message>{log['Message']}</Message>" if log.get("Message") else ""
+    
     xml = """
     <Heartbeat>
         <ServiceName>{ServiceName}</ServiceName>
@@ -19,8 +23,9 @@ def dict_to_xml(log):
             <Host>{Host}</Host>
             <Environment>{Environment}</Environment>
         </Metadata>
+        {MessageTag}
     </Heartbeat>
-    """.format(**log)
+    """.format(**log, MessageTag=message_tag)
     return xml.strip()
 
 # RabbitMQ Configuration
