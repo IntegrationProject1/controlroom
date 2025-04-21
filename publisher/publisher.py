@@ -61,15 +61,24 @@ def generate_dummy_logs():
     
     logs = []
     for i in range(5):  # Generate 5 dummy logs
-        logs.append({
+        status = random.choice(statuses)
+        log = {
             "ServiceName": f"TestService_{i}",
-            "Status": random.choice(statuses),
+            "Status": status,
             "Timestamp": datetime.datetime.utcnow().isoformat() + "Z",
             "HeartBeatInterval": str(1),
             "Version": f"1.{random.randint(0, 9)}.{random.randint(0, 9)}",
             "Host": f"host_{random.randint(100, 999)}",
             "Environment": random.choice(environments)
-        })
+        }
+        
+        # Voeg message toe
+        if status in ["ERROR", "WARNING"]:
+            log["Message"] = random.choice(messages[status])
+        else:
+            log["Message"] = "No issues detected."
+            
+        logs.append(log)
     return logs
 
 # Publish logs to RabbitMQ
