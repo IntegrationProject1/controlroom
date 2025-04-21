@@ -1,4 +1,27 @@
+
+
 services:
+  elastalert:
+    image: jertel/elastalert2
+    container_name: elastalert
+    volumes:
+      - ./elastalert/config.yaml:/opt/elastalert/config.yaml
+      - ./elastalert/rules:/opt/elastalert/rules
+      - ./elastalert/smtp_auth.yaml:/opt/elastalert/smtp_auth.yaml
+    environment:
+      - ELASTALERT_CONFIG=/opt/elastalert/config.yaml
+    depends_on:
+      - elasticsearch
+      
+    networks:
+      - elk
+
+    restart: always              
+    command: --verbose  
+
+
+
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
@@ -28,6 +51,7 @@ services:
       - esdata:/usr/share/elasticsearch/data
     networks:
       - elk
+
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.17.3

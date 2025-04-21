@@ -1,0 +1,27 @@
+es_host: elasticsearch
+es_port: 9200
+es_username: elastic
+es_password: changeme
+
+writeback_index: elastalert_status
+
+rules_folder: /opt/elastalert/rules
+run_every:
+  seconds: 10
+
+buffer_time:
+  minutes: 15
+
+alert_time_limit:
+  days: 2
+  
+# es_timeout: 120
+
+# Email settings
+
+smtp_host: smtp.gmail.com
+smtp_port: 587
+smtp_ssl: false
+from_addr: ???@gmail.com
+smtp_auth_file: /opt/elastalert/smtp_auth.yaml
+
