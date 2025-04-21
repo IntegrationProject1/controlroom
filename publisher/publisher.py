@@ -61,6 +61,7 @@ def generate_dummy_logs():
     
     logs = []
     for i in range(5):  # Generate 5 dummy logs
+        status = random.choice(statuses)
         logs.append({
             "ServiceName": f"TestService_{i}",
             "Status": random.choice(statuses),
