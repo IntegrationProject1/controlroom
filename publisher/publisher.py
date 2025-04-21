@@ -6,12 +6,9 @@ import traceback
 import os
 
 # Function to convert a dictionary to XML
-def dict_to_xml(log):
+def dict_to_heartbeat_xml(log):
     """Convert dictionary to the specified XML format."""
-    
-    # Genereer de message-tag los
-    message_tag = f"<Message>{log['Message']}</Message>" if log.get("Message") else ""
-    
+
     xml = """
     <Heartbeat>
         <ServiceName>{ServiceName}</ServiceName>
@@ -23,9 +20,23 @@ def dict_to_xml(log):
             <Host>{Host}</Host>
             <Environment>{Environment}</Environment>
         </Metadata>
-        {MessageTag}
     </Heartbeat>
-    """.format(**log, MessageTag=message_tag)
+    """.format(**log)
+    return xml.strip()
+
+def dict_to_log_xml(log):
+    xml = """
+    <Log>
+        <ServiceName>{ServiceName}</ServiceName>
+        <Status>{Status}</Status>
+        <Timestamp>{Timestamp}</Timestamp>
+        <Message>{Message}</Message>
+        <Metadata>
+            <Host>{Host}</Host>
+            <Environment>{Environment}</Environment>
+        </Metadata>
+    </Log>
+    """.format(**log)
     return xml.strip()
 
 # RabbitMQ Configuration
@@ -80,8 +91,6 @@ def generate_dummy_logs():
         # Voeg message toe
         if status in ["ERROR", "WARNING"]:
             log["Message"] = random.choice(messages[status])
-        else:
-            log["Message"] = "No issues detected."
             
         logs.append(log)
     return logs
@@ -96,7 +105,7 @@ def publish_logs(channel):
         
         if logs != last_sent_data:  # Check if new data is available
             for log in logs:
-                message = dict_to_xml(log)
+                message = dict_to_heartbeat_xml(log)
                 channel.basic_publish(
                     exchange='',
                     routing_key='controlroom.heartbeat.test',
@@ -104,7 +113,19 @@ def publish_logs(channel):
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
                 )
                 print(f"Sent: {message}")
-                time.sleep(1)  # Wait 1 seconds before sending the next log
+                
+                # Send log if it's an error or warning
+                if log["Status"] in ["ERROR", "WARNING"]:
+                    log_xml = dict_to_log_xml(log)
+                    channel.basic_publish(
+                        exchange='',
+                        routing_key='controlroom.log.test',  # You can change this queue name if needed
+                        body=log_xml,
+                        properties=pika.BasicProperties(delivery_mode=2)
+                    )
+                    print(f"⚠️ Sent log message: {log_xml}")
+                
+                    time.sleep(1)  # Wait 1 seconds before sending the next log
             last_sent_data = logs  # Store last sent data
         else:
             print("No new data. Waiting...")
