@@ -41,7 +41,7 @@ services:
     ports:
       - "9200:9200"
       # Ports for local development
-      # - "9200:9200"
+       - "9200:9200"
     ulimits:
       memlock: -1
     restart: unless-stopped
@@ -69,7 +69,7 @@ services:
     ports:
       - "5601:5601"
       # Ports for local development
-      # - "5601:5601"
+     - "5601:5601"
     networks:
       - elk
 
@@ -115,11 +115,24 @@ services:
       - "15672:15672"
     networks:
       - elk
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      QUEUE_NAME: ${QUEUE_NAME}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - elk
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: controlroom_consumer
-    # depends_on:
-    #   - rabbitmq
+    depends_on:
+      - rabbitmq
     build: ./consumer
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
@@ -129,11 +142,13 @@ services:
       - LOGSTASH_URL=${LOGSTASH_URL}
     networks:
       - elk
+    env_file:
+      - .env
 
   publisher: #Will send test messages to RabbitMQ, replicating real services
     container_name: test_publisher
-    # depends_on:
-    #   - rabbitmq
+    depends_on:
+      - rabbitmq
     build: ./publisher
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
@@ -142,6 +157,8 @@ services:
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     networks:
       - elk
+    env_file:
+      - .env
 
 volumes:
   esdata:

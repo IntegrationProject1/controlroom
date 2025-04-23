@@ -4,26 +4,27 @@ import datetime
 import random
 import traceback
 import os
-from dotenv import load_dotenv
+from lxml import etree
 
-load_dotenv()
 
-# Function to convert a dictionary to XML
-def dict_to_xml(log):
-    """Convert dictionary to the specified XML format."""
-    xml = """
+# Function to convert to minimal Heartbeat XML
+def dict_to_heartbeat_xml(log):
+    xml = f"""
     <Heartbeat>
-        <ServiceName>{ServiceName}</ServiceName>
-        <Status>{Status}</Status>
-        <Timestamp>{Timestamp}</Timestamp>
-        <HeartBeatInterval>{HeartBeatInterval}</HeartBeatInterval>
-        <Metadata>
-            <Version>{Version}</Version>
-            <Host>{Host}</Host>
-            <Environment>{Environment}</Environment>
-        </Metadata>
+        <ServiceName>{log['ServiceName']}</ServiceName>
     </Heartbeat>
-    """.format(**log)
+    """
+    return xml.strip()
+
+# Function to convert to minimal Log XML
+def dict_to_log_xml(log):
+    xml = f"""
+    <Log>
+        <ServiceName>{log['ServiceName']}</ServiceName>
+        <Status>{log['Status']}</Status>
+        <Message>{log['Message']}</Message>
+    </Log>
+    """
     return xml.strip()
 
 RABBITMQ_PORT = os.getenv("RABBITMQ_PORT")
@@ -45,21 +46,59 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 # Generate dummy logs
 def generate_dummy_logs():
     """Generate a list of dummy logs with random values."""
-    statuses = ["OK"]
-    environments = ["production", "staging", "development"]
+    statuses = ["OK", "ERROR", "WARNING"]
+    messages = {
+        "ERROR": [
+            "Failed to connect to database.",
+            "Null pointer exception in ServiceHandler.",
+            "Unhandled exception occurred during processing.",
+        ],
+        "WARNING": [
+            "High memory usage detected.",
+            "Slow response time from external API.",
+            "Service response delayed, retrying...",
+        ]
+    }
     
     logs = []
-    for i in range(5):  # Generate 5 dummy logs
-        logs.append({
+    for i in range(5):
+        status = random.choice(statuses)
+        log = {
             "ServiceName": f"TestService_{i}",
-            "Status": random.choice(statuses),
-            "Timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-            "HeartBeatInterval": str(1),
-            "Version": f"1.{random.randint(0, 9)}.{random.randint(0, 9)}",
-            "Host": f"host_{random.randint(100, 999)}",
-            "Environment": random.choice(environments)
-        })
+            "Status": status,
+            "Message": random.choice(messages[status]) if status in messages else ""
+        }
+        logs.append(log)
     return logs
+
+# Function to validate XML against XSD
+def validate_heartbeat_with_xsd(xml_str, xsd_path="heartbeat.xsd"):
+    """Validate an XML string against an XSD schema file."""
+    try:
+        xml_doc = etree.fromstring(xml_str.encode("utf-8"))
+        with open(xsd_path, 'rb') as f:
+            xmlschema_doc = etree.parse(f)
+            xmlschema = etree.XMLSchema(xmlschema_doc)
+        xmlschema.assertValid(xml_doc)
+        return True, None
+    except etree.DocumentInvalid as e:
+        return False, str(e)
+    except Exception as e:
+        return False, f"Unexpected error during validation: {str(e)}"
+    
+def validate_log_with_xsd(xml_str, xsd_path="log.xsd"):
+    """Validate an XML string against an XSD schema file."""
+    try:
+        xml_doc = etree.fromstring(xml_str.encode("utf-8"))
+        with open(xsd_path, 'rb') as f:
+            xmlschema_doc = etree.parse(f)
+            xmlschema = etree.XMLSchema(xmlschema_doc)
+        xmlschema.assertValid(xml_doc)
+        return True, None
+    except etree.DocumentInvalid as e:
+        return False, str(e)
+    except Exception as e:
+        return False, f"Unexpected error during validation: {str(e)}"
 
 # Publish logs to RabbitMQ
 def publish_logs(channel):
@@ -71,27 +110,48 @@ def publish_logs(channel):
         
         if logs != last_sent_data:  # Check if new data is available
             for log in logs:
-                message = dict_to_xml(log)
+                heartbeat = dict_to_heartbeat_xml(log)
+                is_valid, error = validate_heartbeat_with_xsd(heartbeat)
+                if not is_valid:
+                    print(f"❌ Invalid XML: {error}")
+                    continue
                 channel.basic_publish(
                     exchange='heartbeat',
                     routing_key='controlroom.heartbeat.ping',
-                    body=message,
+                    body=heartbeat,
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
                 )
-                print(f"Sent: {message}")
-                time.sleep(1)  # Wait 1 seconds before sending the next log
+                print(f"✅ Sent heartbeat: {heartbeat}")
+                
+                # Send log if it's an error or warning
+                if log["Status"] in ["ERROR", "WARNING"]:
+                    log_xml = dict_to_log_xml(log)
+                    is_valid, error = validate_log_with_xsd(log_xml)
+                    if not is_valid:
+                        print(f"❌ Invalid XML: {error}")
+                        continue
+                    channel.basic_publish(
+                        exchange='',
+                        routing_key='controlroom.log.test',  # You can change this queue name if needed
+                        body=log_xml,
+                        properties=pika.BasicProperties(delivery_mode=2)
+                    )
+                    print(f"⚠️ Sent log message: {log_xml}")
+                
+                    time.sleep(1)  # Wait 1 seconds before sending the next log
             last_sent_data = logs  # Store last sent data
         else:
-            print("No new data. Waiting...")
+            print("⏳ No new data. Waiting...")
             time.sleep(1)  # Keep waiting if no new data
+
+
 
 
 # Connect to RabbitMQ
 
 def main():
-    """Connecting to RabbitMQ and starting the publisher."""
-    time.sleep(60) # Waits for RabbitMQ to start (Local development)
-    for attempt in range(10):  # Retry up to 10 times
+    time.sleep(60)  # Wait for RabbitMQ to be ready
+    for attempt in range(10):
         try:
             print(f"Connecting to RabbitMQ (attempt {attempt + 1})...")
             print("Rabbitmq info: ",RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_HOST, RABBITMQ_PORT)
@@ -105,7 +165,6 @@ def main():
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
             print("Connected to RabbitMQ")
             break
-            # Exit the loop if the connection is successful
         except pika.exceptions.AMQPConnectionError as e:
             print(f"Error connecting to RabbitMQ: {e}")
             traceback.print_exc()  # Log the full traceback for debugging

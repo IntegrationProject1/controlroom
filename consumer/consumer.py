@@ -3,10 +3,6 @@ import xml.etree.ElementTree as ET
 import requests
 import traceback
 import time
-import os 
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Configuratie
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
@@ -21,37 +17,19 @@ QUEUE_NAME = "controlroom.heartbeat.ping"
 def process_message(body):
     """Processes the message and sends it to Logstash"""
     try:
-        # Decode the XML message
         message = body.decode()
         root = ET.fromstring(message)
 
-        # Extract relevant data from the XML
+        # Extract only the needed field
         service_name = root.find('ServiceName').text
-        status = root.find('Status').text
-        timestamp = root.find('Timestamp').text
-        heartbeat_interval = root.find('HeartBeatInterval').text
-        version = root.find('.//Version').text
-        host = root.find('.//Host').text
-        environment = root.find('.//Environment').text
 
-        # Makes a dictionary from the extracted data
         message_dict = {
-            "ServiceName": service_name,
-            "Status": status,
-            "Timestamp": timestamp,
-            "HeartBeatInterval": heartbeat_interval,
-            "Version": version,
-            "Host": host,
-            "Environment": environment
+            "ServiceName": service_name
         }
 
         print(f"Received message: {message_dict}")
         
         # Send the message to Logstash
-        if "Status" not in message_dict or "Timestamp" not in message_dict:
-            print("Error: Message is missing fields (status/timestamp)")
-            return
-
         response = requests.post(LOGSTASH_URL, json=message_dict)
         if response.status_code in [200, 201]:
             print("Message succesfully sent to Logstash")
@@ -80,12 +58,10 @@ def connect():
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
-            channel.exchange_declare(exchange='heartbeat', exchange_type='direct', durable=True)
-            channel.queue_bind(exchange='heartbeat', queue=QUEUE_NAME, routing_key=QUEUE_NAME)
             channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
-            print("Waiting for messages...")
+            print("🎧 Waiting for messages...")
             channel.start_consuming()
-            break  # Exit the loop if the connection is successful
+            break
         except pika.exceptions.AMQPConnectionError as e:
             print(f"Error connecting to RabbitMQ: {e}")
             traceback.print_exc()  # Log the full traceback for debugging
@@ -99,3 +75,4 @@ def connect():
 
 if __name__ == "__main__":
     connect()
+
