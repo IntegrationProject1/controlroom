@@ -15,7 +15,8 @@ index: heartbeat-logs*
 
 filter:
 - term:
-    Status.keyword: "OK"
+    alive.keyword: "DOWN"
+    alive.keyword: "WARNING"
 
 timeframe:
   minutes: 1
