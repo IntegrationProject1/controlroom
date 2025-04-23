@@ -12,9 +12,7 @@ load_dotenv()
 # RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
 # RABBITMQ_PORT = 30020
 # QUEUE_NAME = "controlroom.heartbeat.test"
-RABBITMQ_HOST = "rabbitmq"  
-RABBITMQ_PORT = 5672
-QUEUE_NAME = "test_31"
+
 #logstash url 
 LOGSTASH_URL = "http://logstash:5044"
 
@@ -27,29 +25,20 @@ def process_message(body):
 
         # Extract relevant data from the XML
         service_name = root.find('ServiceName').text
-        status = root.find('Status').text
-        timestamp = root.find('Timestamp').text
-        heartbeat_interval = root.find('HeartBeatInterval').text
-        version = root.find('.//Version').text
-        host = root.find('.//Host').text
-        environment = root.find('.//Environment').text
+        
+        
 
         # Makes a dictionary from the extracted data
         message_dict = {
             "ServiceName": service_name,
-            "Status": status,
-            "Timestamp": timestamp,
-            "HeartBeatInterval": heartbeat_interval,
-            "Version": version,
-            "Host": host,
-            "Environment": environment
+            
         }
 
         print(f"✅ Received message: {message_dict}")
         
         # Send the message to Logstash
-        if "Status" not in message_dict or "Timestamp" not in message_dict:
-            print("⚠️ Error: Message is missing fields (status/timestamp)")
+        if "ServiceName" not in message_dict:
+            print("⚠️ Error: Message is missing fields")
             return
 
         response = requests.post(LOGSTASH_URL, json=message_dict)
