@@ -6,26 +6,27 @@ import traceback
 import os
 from lxml import etree
 
-# Function to convert a dictionary to XML
+
+# Function to convert to minimal Heartbeat XML
 def dict_to_heartbeat_xml(log):
-    """Convert dictionary to the specified XML format."""
-
-    xml = """
+    xml = f"""
     <Heartbeat>
-        <ServiceName>{ServiceName}</ServiceName>
+        <ServiceName>{log['ServiceName']}</ServiceName>
     </Heartbeat>
-    """.format(**log)
+    """
     return xml.strip()
 
+# Function to convert to minimal Log XML
 def dict_to_log_xml(log):
-    xml = """
+    xml = f"""
     <Log>
-        <ServiceName>{ServiceName}</ServiceName>
-        <Status>{Status}</Status>
-        <Message>{Message}</Message>
+        <ServiceName>{log['ServiceName']}</ServiceName>
+        <Status>{log['Status']}</Status>
+        <Message>{log['Message']}</Message>
     </Log>
-    """.format(**log)
+    """
     return xml.strip()
+
 
 # RabbitMQ Configuration
 # RABBITMQ_PORT = 30020
@@ -49,7 +50,6 @@ RABBITMQ_PORT = 5672
 def generate_dummy_logs():
     """Generate a list of dummy logs with random values."""
     statuses = ["OK", "ERROR", "WARNING"]
-    environments = ["production", "staging", "development"]
     messages = {
         "ERROR": [
             "Failed to connect to database.",
@@ -64,17 +64,13 @@ def generate_dummy_logs():
     }
     
     logs = []
-    for i in range(5):  # Generate 5 dummy logs
+    for i in range(5):
         status = random.choice(statuses)
         log = {
             "ServiceName": f"TestService_{i}",
             "Status": status,
+            "Message": random.choice(messages[status]) if status in messages else ""
         }
-        
-        # Voeg message toe
-        if status in ["ERROR", "WARNING"]:
-            log["Message"] = random.choice(messages[status])
-            
         logs.append(log)
     return logs
 
@@ -117,18 +113,18 @@ def publish_logs(channel):
         
         if logs != last_sent_data:  # Check if new data is available
             for log in logs:
-                message = dict_to_heartbeat_xml(log)
-                is_valid, error = validate_heartbeat_with_xsd(message)
+                heartbeat = dict_to_heartbeat_xml(log)
+                is_valid, error = validate_heartbeat_with_xsd(heartbeat)
                 if not is_valid:
                     print(f"❌ Invalid XML: {error}")
                     continue
                 channel.basic_publish(
                     exchange='',
                     routing_key='controlroom.heartbeat.test',
-                    body=message,
+                    body=heartbeat,
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
                 )
-                print(f"Sent: {message}")
+                print(f"✅ Sent heartbeat: {heartbeat}")
                 
                 # Send log if it's an error or warning
                 if log["Status"] in ["ERROR", "WARNING"]:
@@ -143,12 +139,12 @@ def publish_logs(channel):
                         body=log_xml,
                         properties=pika.BasicProperties(delivery_mode=2)
                     )
-                    print(f"Sent log message: {log_xml}")
+                    print(f"⚠️ Sent log message: {log_xml}")
                 
                     time.sleep(1)  # Wait 1 seconds before sending the next log
             last_sent_data = logs  # Store last sent data
         else:
-            print("No new data. Waiting...")
+            print("⏳ No new data. Waiting...")
             time.sleep(1)  # Keep waiting if no new data
 
 
@@ -157,31 +153,29 @@ def publish_logs(channel):
 # Connect to RabbitMQ
 
 def main():
-    """Connecting to RabbitMQ and starting the publisher."""
-    time.sleep(60) # Waits for RabbitMQ to start (Local development)
-    for attempt in range(10):  # Retry up to 10 times
+    time.sleep(60)  # Wait for RabbitMQ to be ready
+    for attempt in range(10):
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
-            #credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
-            credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
+            credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
-            print("Connected to RabbitMQ")
+            print("✅ Connected to RabbitMQ")
             break
-            # Exit the loop if the connection is successful
         except pika.exceptions.AMQPConnectionError as e:
-            print(f"❌ Error connecting to RabbitMQ: {e}")
-            traceback.print_exc()  # Log the full traceback for debugging
-            time.sleep(5)  # Wait 5 seconds before retrying
+            print(f"❌ Connection error: {e}")
+            traceback.print_exc()
+            time.sleep(5)
         except Exception as e:
             print(f"❌ Unexpected error: {e}")
-            traceback.print_exc()  # Log unexpected errors
-            time.sleep(5)  # Wait 5 seconds before retrying
+            traceback.print_exc()
+            time.sleep(5)
     else:
-        print("❌ Unable to connect to RabbitMQ after several attempts.")
-    
+        print("❌ Could not connect to RabbitMQ after multiple attempts.")
+        return
+
     publish_logs(channel)
     connection.close()
     
