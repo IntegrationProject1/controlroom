@@ -4,6 +4,9 @@ import datetime
 import random
 import traceback
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Function to convert a dictionary to XML
 def dict_to_xml(log):
@@ -23,22 +26,20 @@ def dict_to_xml(log):
     """.format(**log)
     return xml.strip()
 
-# RabbitMQ Configuration
-# RABBITMQ_PORT = 30020
-
-#RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
-#RABBITMQ_PORT = 30020
-#RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
-#RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
-
-
+RABBITMQ_PORT = 30020
 # Rabbitmq host and port for local development:
+RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
+# RABBITMQ_PORT = 5672
 
-RABBITMQ_USERNAME = "guest"
-RABBITMQ_PASSWORD = "guest"
-QUEUE_NAME = "controlroom.heartbeat.test"
-RABBITMQ_HOST = "rabbitmq"
-RABBITMQ_PORT = 5672
+QUEUE_NAME = "controlroom.heartbeat.ping"
+RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
+# Rabbitmq credentials for local development:
+# RABBITMQ_USERNAME = "guest"
+# RABBITMQ_PASSWORD = "guest"
+
+
+
 
 
 # Generate dummy logs
@@ -72,8 +73,8 @@ def publish_logs(channel):
             for log in logs:
                 message = dict_to_xml(log)
                 channel.basic_publish(
-                    exchange='',
-                    routing_key='controlroom.heartbeat.test',
+                    exchange='heartbeat',
+                    routing_key='',
                     body=message,
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
                 )
@@ -89,12 +90,12 @@ def publish_logs(channel):
 
 def main():
     """Connecting to RabbitMQ and starting the publisher."""
-    time.sleep(60) # Waits for RabbitMQ to start (Local development)
+    #time.sleep(60) # Waits for RabbitMQ to start (Local development)
     for attempt in range(10):  # Retry up to 10 times
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
             #credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
-            credentials = pika.PlainCredentials('guest', 'guest') #credentials for local development
+            credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD) #credentials for local development
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
