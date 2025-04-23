@@ -1,7 +1,7 @@
 es_host: elasticsearch
-es_port: 9200
-es_username: elastic
-es_password: changeme
+es_port: ${ELASTICSEARCH_PORT}
+es_username: ${ELASTICSEARCH_USER}
+es_password: ${ELASTICSEARCH_PASSWORD}
 
 writeback_index: elastalert_status
 
@@ -14,14 +14,13 @@ buffer_time:
 
 alert_time_limit:
   days: 2
-  
+
 # es_timeout: 120
 
 # Email settings
 
-smtp_host: smtp.gmail.com
-smtp_port: 587
+smtp_host: ${SMTP_HOST}
+smtp_port: ${SMTP_PORT}
 smtp_ssl: false
-from_addr: expo.management111@gmail.com
-smtp_auth_file: /opt/elastalert/smtp_auth.yaml
-
+from_addr: ${FROM_ADDR}
+smtp_auth_file: /opt/elastalert/smtp_auth.yml

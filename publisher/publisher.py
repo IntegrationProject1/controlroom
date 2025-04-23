@@ -26,9 +26,9 @@ def dict_to_xml(log):
     """.format(**log)
     return xml.strip()
 
-RABBITMQ_PORT = 30020
+RABBITMQ_PORT = os.getenv("RABBITMQ_PORT")
 # Rabbitmq host and port for local development:
-RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
 # RABBITMQ_PORT = 5672
 
 QUEUE_NAME = "controlroom.heartbeat.ping"
@@ -74,7 +74,7 @@ def publish_logs(channel):
                 message = dict_to_xml(log)
                 channel.basic_publish(
                     exchange='heartbeat',
-                    routing_key='',
+                    routing_key='controlroom.heartbeat.ping',
                     body=message,
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
                 )
@@ -90,29 +90,32 @@ def publish_logs(channel):
 
 def main():
     """Connecting to RabbitMQ and starting the publisher."""
-    #time.sleep(60) # Waits for RabbitMQ to start (Local development)
+    time.sleep(60) # Waits for RabbitMQ to start (Local development)
     for attempt in range(10):  # Retry up to 10 times
         try:
-            print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
+            print(f"Connecting to RabbitMQ (attempt {attempt + 1})...")
+            print("Rabbitmq info: ",RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_HOST, RABBITMQ_PORT)
             #credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
             credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD) #credentials for local development
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
+            channel.exchange_declare(exchange='heartbeat', exchange_type='direct', durable=True)
+            
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
             print("Connected to RabbitMQ")
             break
             # Exit the loop if the connection is successful
         except pika.exceptions.AMQPConnectionError as e:
-            print(f"❌ Error connecting to RabbitMQ: {e}")
+            print(f"Error connecting to RabbitMQ: {e}")
             traceback.print_exc()  # Log the full traceback for debugging
             time.sleep(5)  # Wait 5 seconds before retrying
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"Unexpected error: {e}")
             traceback.print_exc()  # Log unexpected errors
             time.sleep(5)  # Wait 5 seconds before retrying
     else:
-        print("❌ Unable to connect to RabbitMQ after several attempts.")
+        print("Unable to connect to RabbitMQ after several attempts.")
     
     publish_logs(channel)
     connection.close()
