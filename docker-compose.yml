@@ -114,6 +114,11 @@ services:
     # depends_on:
     #   - rabbitmq
     build: ./consumer
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     networks:
       - elk
 
@@ -122,6 +127,11 @@ services:
     # depends_on:
     #   - rabbitmq
     build: ./publisher
+    environment:
+      - RABBITMQ_HOST=${RABBITMQ_HOST}
+      - RABBITMQ_PORT=${RABBITMQ_PORT}
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     networks:
       - elk
 

@@ -11,9 +11,15 @@ load_dotenv()
 # Configuratie
 RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
 RABBITMQ_PORT = 30020
-QUEUE_NAME = "controlroom.heartbeat.test"
-#logstash url 
+RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 LOGSTASH_URL = "http://logstash:5044"
+# Rabbitmq port for local development:
+#RABBITMQ_PORT = 5672
+QUEUE_NAME = "controlroom.heartbeat.ping"
+#logstash url for local development
+# LOGSTASH_URL = "http://logstash:5044"
+
 
 def process_message(body):
     """Processes the message and sends it to Logstash"""
@@ -68,16 +74,16 @@ def callback(ch, method, properties, body):
 
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
-    time.sleep(60)  # Wait for RabbitMQ to start (Local development)
+    #time.sleep(60)  # Wait for RabbitMQ to start (Local development)
     for attempt in range(10):  # Retry up to 10 times
         try:
             print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
-            credentials = pika.PlainCredentials(os.getenv("RABBITMQ_USER"), os.getenv("RABBITMQ_PASSWORD")) #credentials for local development
-            connection_params = pika.ConnectionParameters(host=os.getenv("RABBITMQ_HOST"), port=os.getenv("RABBITMQ_PORT"), credentials=credentials)
+            credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD) #credentials for local development
+            connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
-            channel.queue_declare(queue=os.getenv("QUEUE_NAME"), durable=True)
-            channel.basic_consume(queue=os.getenv("QUEUE_NAME"), on_message_callback=callback)
+            channel.queue_declare(queue=QUEUE_NAME, durable=True)
+            channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
             print("🎧 Waiting for messages...")
             channel.start_consuming()
             break  # Exit the loop if the connection is successful
