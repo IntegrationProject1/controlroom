@@ -131,7 +131,7 @@ def publish_logs(channel):
                         print(f"❌ Invalid XML: {error}")
                         continue
                     channel.basic_publish(
-                        exchange='',
+                        exchange='log_monitoring',
                         routing_key='controlroom.log.test',  # You can change this queue name if needed
                         body=log_xml,
                         properties=pika.BasicProperties(delivery_mode=2)
@@ -161,8 +161,10 @@ def main():
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
             channel.exchange_declare(exchange='heartbeat', exchange_type='direct', durable=True)
-            
+            channel.exchange_declare(exchange='log_monitoring', exchange_type='direct', durable=True)
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
+            channel.queue_declare(queue='controlroom.log.test', durable=True)
+            channel.queue_bind(exchange='heartbeat', queue=QUEUE_NAME, routing_key=QUEUE_NAME)
             print("Connected to RabbitMQ")
             break
         except pika.exceptions.AMQPConnectionError as e:

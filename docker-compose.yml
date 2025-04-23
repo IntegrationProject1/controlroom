@@ -40,8 +40,6 @@ services:
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
       - "9200:9200"
-      # Ports for local development
-       - "9200:9200"
     ulimits:
       memlock: -1
     restart: unless-stopped
@@ -69,7 +67,7 @@ services:
     ports:
       - "5601:5601"
       # Ports for local development
-     - "5601:5601"
+
     networks:
       - elk
 
@@ -102,19 +100,6 @@ services:
       - elk
 
   #RabbitMQ Instance for local development, comment out for deployment on VM
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    environment:
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      QUEUE_NAME: ${QUEUE_NAME}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - elk
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
