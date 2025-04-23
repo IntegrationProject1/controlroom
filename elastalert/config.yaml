@@ -22,6 +22,6 @@ alert_time_limit:
 smtp_host: smtp.gmail.com
 smtp_port: 587
 smtp_ssl: false
-from_addr: ???@gmail.com
+from_addr: expo.management111@gmail.com
 smtp_auth_file: /opt/elastalert/smtp_auth.yaml
 
