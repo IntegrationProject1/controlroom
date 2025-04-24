@@ -3,7 +3,10 @@ name: ELK CI/CD Deploy Pipeline
 on:
   push:
     branches:
-      - Deployment
+      - deployment
+  pull_request:
+    branches:
+      - deployment
 
 jobs:
   build:
@@ -20,12 +23,21 @@ jobs:
       - name: Build Docker Images
         run: docker compose build
 
-      - name: Set environment variables from GitHub Secrets
-        run: |
-          echo "ELASTICSEARCH_USER=${{ secrets.ELASTICSEARCH_USER }}" >> $GITHUB_ENV    
-          echo "ELASTICSEARCH_PASSWORD=${{ secrets.ELASTICSEARCH_PASSWORD }}" >> $GITHUB_ENV
-
       - name: Test Docker Compose
+        env:
+          DOCKER_NETWORK: ${{ secrets.DOCKER_NETWORK }}
+          ELASTICSEARCH_HOST: ${{ secrets.ELASTICSEARCH_HOST }}
+          ELASTICSEARCH_PORT: ${{ secrets.ELASTICSEARCH_PORT }}
+          ELASTICSEARCH_INDEX: ${{ secrets.ELASTICSEARCH_INDEX }}
+          ELASTICSEARCH_USER: ${{ secrets.ELASTICSEARCH_USER }}
+          ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
+          ELASTICSEARCH_MEMORY_OPTS: ${{ secrets.ELASTICSEARCH_MEMORY_OPTS }}
+          RABBITMQ_USER: ${{ secrets.RABBITMQ_USER }}
+          RABBITMQ_PASS: ${{ secrets.RABBITMQ_PASS }}
+          LOGSTASH_INTERNAL_PASSWORD: ${{ secrets.LOGSTASH_INTERNAL_PASSWORD }}
+          LOGSTASH_URL: ${{ secrets.LOGSTASH_URL }}
+          LOGSTASH_PORT: ${{ secrets.LOGSTASH_PORT }}
+          RABBITMQ_HOST: ${{ secrets.RABBITMQ_HOST }}
         run: |
           docker compose up -docker
           sleep 10
