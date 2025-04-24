@@ -116,8 +116,8 @@ services:
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: controlroom_consumer
-    depends_on:
-      - rabbitmq
+    # depends_on:
+    #   - rabbitmq
     build: ./consumer
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
@@ -130,8 +130,8 @@ services:
 
   publisher: #Will send test messages to RabbitMQ, replicating real services
     container_name: test_publisher
-    depends_on:
-      - rabbitmq
+    # depends_on:
+    #   - rabbitmq
     build: ./publisher
     environment:
       - RABBITMQ_HOST=${RABBITMQ_HOST}
