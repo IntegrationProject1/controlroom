@@ -116,7 +116,7 @@ def publish_logs(channel):
                     print(f"❌ Invalid XML: {error}")
                     continue
                 channel.basic_publish(
-                    exchange='heartbeat',
+                    exchange='heartbeat_monitoring',
                     routing_key='controlroom.heartbeat.ping',
                     body=heartbeat,
                     properties=pika.BasicProperties(delivery_mode=2)  # Make messages persistent
@@ -159,11 +159,11 @@ def main():
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
-            channel.exchange_declare(exchange='heartbeat', exchange_type='direct', durable=True)
+            channel.exchange_declare(exchange='heartbeat_monitoring', exchange_type='direct', durable=True)
             channel.exchange_declare(exchange='log_monitoring', exchange_type='direct', durable=True)
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
             channel.queue_declare(queue='controlroom.log.test', durable=True)
-            channel.queue_bind(exchange='heartbeat', queue=QUEUE_NAME, routing_key=QUEUE_NAME)
+            channel.queue_bind(exchange='heartbeat_monitoring', queue=QUEUE_NAME, routing_key=QUEUE_NAME)
             channel.queue_bind(exchange='log_monitoring', queue='controlroom.log.test', routing_key='controlroom.log.test')
             print("Connected to RabbitMQ")
             break
