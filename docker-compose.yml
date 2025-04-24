@@ -127,8 +127,6 @@ services:
       - LOGSTASH_URL=${LOGSTASH_URL}
     networks:
       - elk
-    env_file:
-      - .env
 
   publisher: #Will send test messages to RabbitMQ, replicating real services
     container_name: test_publisher
@@ -142,8 +140,6 @@ services:
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
     networks:
       - elk
-    env_file:
-      - .env
 
 volumes:
   esdata:
