@@ -24,30 +24,19 @@ def process_heartbeat(body):
  
         # Extract relevant data from the XML
         service_name = root.find('ServiceName').text
-        status = root.find('Status').text
-        timestamp = root.find('Timestamp').text
-        heartbeat_interval = root.find('HeartBeatInterval').text
-        version = root.find('.//Version').text
-        host = root.find('.//Host').text
-        environment = root.find('.//Environment').text
+        
  
         # Makes a dictionary from the extracted data
         message_dict = {
             "ServiceName": service_name,
-            "Status": status,
-            "Timestamp": timestamp,
-            "HeartBeatInterval": heartbeat_interval,
-            "Version": version,
-            "Host": host,
-            "Environment": environment,
             "Type": "heartbeat"
         }
  
         print(f"✅ Received heartbeat: {message_dict}")
         
         # Send the message to Logstash
-        if "Status" not in message_dict or "Timestamp" not in message_dict:
-            print("⚠️ Error: Message is missing fields (status/timestamp)")
+        if "ServiceName" not in message_dict :
+            print("⚠️ Error: Message is missing fields (ServiceName)")
             return
  
         response = requests.post(LOGSTASH_URL, json=message_dict)
@@ -72,27 +61,22 @@ def process_log(body):
         # Extract relevant data from the XML
         service_name = root.find('ServiceName').text
         status = root.find('Status').text
-        timestamp = root.find('Timestamp').text
         log_message = root.find('Message').text
-        host = root.find('.//Host').text
-        environment = root.find('.//Environment').text
+        
  
         # Makes a dictionary from the extracted data
         message_dict = {
             "ServiceName": service_name,
             "Status": status,
-            "Timestamp": timestamp,
             "Message": log_message,
-            "Host": host,
-            "Environment": environment,
             "Type": "log"
         }
  
         print(f"✅ Received log: {message_dict}")
         
         # Send the message to Logstash
-        if "Status" not in message_dict or "Timestamp" not in message_dict:
-            print("⚠️ Error: Message is missing fields (status/timestamp)")
+        if "Status" not in message_dict:
+            print("⚠️ Error: Message is missing fields (status)")
             return
  
         response = requests.post(LOGSTASH_URL, json=message_dict)
@@ -136,7 +120,7 @@ def connect():
             channel.basic_consume(queue=HEARTBEAT_QUEUE, on_message_callback=heartbeat_callback)
             channel.basic_consume(queue=LOG_QUEUE, on_message_callback=log_callback)
             
-            print("🎧 Waiting for heartbeats and logs...")
+            print("Waiting for heartbeats and logs...")
             channel.start_consuming()
             break
         except pika.exceptions.AMQPConnectionError as e:
@@ -150,7 +134,7 @@ def connect():
     else:
         print("Unable to connect to RabbitMQ after several attempts.")
 
-        print("❌ Unable to connect to RabbitMQ after several attempts.")
+       
  
 if __name__ == "__main__":
     connect()

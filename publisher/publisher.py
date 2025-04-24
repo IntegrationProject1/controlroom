@@ -165,6 +165,7 @@ def main():
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
             channel.queue_declare(queue='controlroom.log.test', durable=True)
             channel.queue_bind(exchange='heartbeat', queue=QUEUE_NAME, routing_key=QUEUE_NAME)
+            channel.queue_bind(exchange='log_monitoring', queue='controlroom.log.test', routing_key='controlroom.log.test')
             print("Connected to RabbitMQ")
             break
         except pika.exceptions.AMQPConnectionError as e:
