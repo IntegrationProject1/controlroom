@@ -1,0 +1,32 @@
+es_host: elasticsearch
+es_port: ${ELASTICSEARCH_PORT}
+
+name: Service Down or Error Alert
+
+type: any
+index: heartbeat-logs*
+# filter:
+# - query:
+#     query_string:
+#       query: 'Status:("ERROR")'
+#       # query: 'Status:("ERROR" OR "DOWN" OR "unavailable" OR "timeout" OR "500")'
+
+filter:
+  - term:
+      alive.keyword: "DOWN"
+
+timeframe:
+  minutes: 1
+
+realert:
+  minutes: 5
+
+alert:
+  - "email"
+
+email:
+  - "expo.management111@gmail.com" # receiving emails
+
+smtp_host: ${SMTP_HOST}
+smtp_port: ${SMTP_PORT}
+smtp_auth_file: /opt/elastalert/smtp_auth.yml

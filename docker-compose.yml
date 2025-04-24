@@ -1,24 +1,29 @@
 services:
-  setup:
-    profiles:
-      - setup
-    build:
-      context: ./setup/
-      args:
-        ELASTIC_VERSION: ${ELASTIC_VERSION}
-    init: true
-    volumes:
-      - ./setup/entrypoint.sh:/entrypoint.sh:ro,Z
-      - ./setup/lib.sh:/lib.sh:ro,Z
-      - ./setup/roles:/roles:ro,Z
-    environment:
-      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
-      LOGSTASH_INTERNAL_PASSWORD: ${LOGSTASH_INTERNAL_PASSWORD}
-      KIBANA_SYSTEM_PASSWORD: ${KIBANA_SYSTEM_PASSWORD}
-    networks:
-      - elk
-    depends_on:
-      - elasticsearch
+  # elastalert:
+  #   image: jertel/elastalert2
+  #   container_name: elastalert
+  #   volumes:
+  #     - ./elastalert/config.yml:/opt/elastalert/config.yml
+  #     - ./elastalert/rules:/opt/elastalert/rules
+  #     - ./elastalert/smtp_auth.yml:/opt/elastalert/smtp_auth.yml
+  #   environment:
+  #     - ELASTALERT_CONFIG=/opt/elastalert/config.yml
+  #     - SMTP_HOST=${SMTP_HOST}
+  #     - SMTP_PORT=${SMTP_PORT}
+  #     - ELASTICSEARCH_PORT=9200
+  #     - ELASTICSEARCH_USER=${ELASTICSEARCH_USER}
+  #     - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
+  #     - FROM_ADDR=${FROM_ADDR}
+  #     - SMTP_PASSWORD=${SMTP_PASSWORD}
+  #   depends_on:
+  #     - elasticsearch
+  #   command: >
+  #     /bin/sh -c "
+  #     elastalert-create-index --index elastalert_status --old-index '' --config /opt/elastalert/config/config.yml --host elasticsearch --port ${ELASTICSEARCH_PORT} --username ${ELASTICSEARCH_USER} --password ${ELASTICSEARCH_PASSWORD} &&
+  #     elastalert --config /opt/elastalert/config/config.yml"
+  #   networks:
+  #     - elk
+  #   restart: always
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
@@ -35,8 +40,6 @@ services:
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
       - "30051:9200"
-      # Ports for local development
-      # - "9200:9200"
     ulimits:
       memlock: -1
     restart: unless-stopped
@@ -56,6 +59,7 @@ services:
     depends_on:
       - elasticsearch
     environment:
+      - ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST}
       - KIBANA_SYSTEM_PASSWORD=${KIBANA_SYSTEM_PASSWORD}
     volumes:
       - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
@@ -63,7 +67,7 @@ services:
     ports:
       - "30052:5601"
       # Ports for local development
-      # - "5601:5601"
+
     networks:
       - elk
 
@@ -74,7 +78,8 @@ services:
       - elasticsearch
     environment:
       - LOGSTASH_INTERNAL_PASSWORD=${LOGSTASH_INTERNAL_PASSWORD}
-      - ELASTICSEARCH_USERNAME=elastic
+      - ELASTICSEARCH_HOST=${ELASTICSEARCH_HOST}
+      - ELASTICSEARCH_USER=elastic
       - LOGSTASH_URL=${LOGSTASH_URL}
       - LOGSTASH_PORT=${LOGSTASH_PORT}
       - "elasticsearch.username: elastic"
@@ -119,6 +124,7 @@ services:
       - RABBITMQ_PORT=${RABBITMQ_PORT}
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
+      - LOGSTASH_URL=${LOGSTASH_URL}
     networks:
       - elk
 
