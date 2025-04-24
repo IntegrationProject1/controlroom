@@ -1,29 +1,29 @@
 services:
-  elastalert:
-    image: jertel/elastalert2
-    container_name: elastalert
-    volumes:
-      - ./elastalert/config.yml:/opt/elastalert/config.yml
-      - ./elastalert/rules:/opt/elastalert/rules
-      - ./elastalert/smtp_auth.yml:/opt/elastalert/smtp_auth.yml
-    environment:
-      - ELASTALERT_CONFIG=/opt/elastalert/config.yml
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_PORT=${SMTP_PORT}
-      - ELASTICSEARCH_PORT=9200
-      - ELASTICSEARCH_USER=${ELASTICSEARCH_USER}
-      - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
-      - FROM_ADDR=${FROM_ADDR}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-    depends_on:
-      - elasticsearch
-    command: >
-      /bin/sh -c "
-      elastalert-create-index --index elastalert_status --old-index '' --config /opt/elastalert/config/config.yml --host elasticsearch --port ${ELASTICSEARCH_PORT} --username ${ELASTICSEARCH_USER} --password ${ELASTICSEARCH_PASSWORD} &&
-      elastalert --config /opt/elastalert/config/config.yml"
-    networks:
-      - elk
-    restart: always
+  # elastalert:
+  #   image: jertel/elastalert2
+  #   container_name: elastalert
+  #   volumes:
+  #     - ./elastalert/config.yml:/opt/elastalert/config.yml
+  #     - ./elastalert/rules:/opt/elastalert/rules
+  #     - ./elastalert/smtp_auth.yml:/opt/elastalert/smtp_auth.yml
+  #   environment:
+  #     - ELASTALERT_CONFIG=/opt/elastalert/config.yml
+  #     - SMTP_HOST=${SMTP_HOST}
+  #     - SMTP_PORT=${SMTP_PORT}
+  #     - ELASTICSEARCH_PORT=9200
+  #     - ELASTICSEARCH_USER=${ELASTICSEARCH_USER}
+  #     - ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}
+  #     - FROM_ADDR=${FROM_ADDR}
+  #     - SMTP_PASSWORD=${SMTP_PASSWORD}
+  #   depends_on:
+  #     - elasticsearch
+  #   command: >
+  #     /bin/sh -c "
+  #     elastalert-create-index --index elastalert_status --old-index '' --config /opt/elastalert/config/config.yml --host elasticsearch --port ${ELASTICSEARCH_PORT} --username ${ELASTICSEARCH_USER} --password ${ELASTICSEARCH_PASSWORD} &&
+  #     elastalert --config /opt/elastalert/config/config.yml"
+  #   networks:
+  #     - elk
+  #   restart: always
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
@@ -39,7 +39,7 @@ services:
       - xpack.security.enabled=true
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
-      - "9200:9200"
+      - "30051:9200"
     ulimits:
       memlock: -1
     restart: unless-stopped
@@ -65,7 +65,7 @@ services:
       - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
     restart: unless-stopped
     ports:
-      - "5601:5601"
+      - "30052:5601"
       # Ports for local development
 
     networks:
@@ -89,9 +89,9 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
     restart: unless-stopped
     ports:
-      - "5044:5044" # Beats input
-      - "5000:5000/tcp" # Logstash TCP input
-      - "5000:5000/udp" # Logstash UDP input
+      - "30053:5044" # Beats input
+      - "30054:5000/tcp" # Logstash TCP input
+      - "30054:5000/udp" # Logstash UDP input
       # Ports for local development
       # - "5044:5044" # Beats input
       # - "5000:5000/tcp" # Logstash TCP input
@@ -100,19 +100,19 @@ services:
       - elk
 
   #RabbitMQ Instance for local development, comment out for deployment on VM
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    environment:
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      QUEUE_NAME: ${QUEUE_NAME}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - elk
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   container_name: rabbitmq
+  #   environment:
+  #     RABBITMQ_HOST: rabbitmq
+  #     RABBITMQ_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+  #     QUEUE_NAME: ${QUEUE_NAME}
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   networks:
+  #     - elk
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: controlroom_consumer
