@@ -154,7 +154,6 @@ def main():
     for attempt in range(10):
         try:
             print(f"Connecting to RabbitMQ (attempt {attempt + 1})...")
-            print("Rabbitmq info: ",RABBITMQ_USERNAME, RABBITMQ_PASSWORD, RABBITMQ_HOST, RABBITMQ_PORT)
             #credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
             credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD) #credentials for local development
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
