@@ -35,7 +35,6 @@ services:
       - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
 
       - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
-      - "ELASTIC_PASSWORD= ${ELASTIC_PASSWORD}"
       - xpack.security.enabled=true
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
