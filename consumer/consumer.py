@@ -4,6 +4,8 @@ import requests
 import traceback
 import time
 import os
+from datetime import datetime, timedelta, timezone
+import threading
  
 # Configuratie
 RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
@@ -11,10 +13,11 @@ RABBITMQ_PORT = os.getenv("RABBITMQ_PORT")
 RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 LOGSTASH_URL = os.getenv("LOGSTASH_URL")
-HEARTBEAT_QUEUE = "controlroom.heartbeat.test"
+HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
 LOG_QUEUE = "controlroom.log.test"
 #logstash url for local development
 
+downtime_tracking = {}
 
 def process_heartbeat(body):
     """Processes the heartbeat message and sends it to Logstash"""
@@ -24,6 +27,54 @@ def process_heartbeat(body):
  
         # Extract relevant data from the XML
         service_name = root.find('ServiceName').text
+        
+        now = datetime.now(timezone.utc)
+        service_state = downtime_tracking.get(service_name)
+        
+        # Check if the service was down
+        if service_state and service_state.get("downtime_start"):
+            downtime_end = now.isoformat() 
+            downtime_start = service_state["downtime_start"]
+            
+            # Calculate downtime duration in seconds
+            try:
+                if downtime_start.endswith('Z'):
+                    start_dt = datetime.fromisoformat(downtime_start.rstrip('Z')).replace(tzinfo=timezone.utc)
+                else:
+                    start_dt = datetime.fromisoformat(downtime_start).replace(tzinfo=timezone.utc)
+                
+                # Calculate seconds as an integer
+                duration_seconds = int((now - start_dt).total_seconds())
+                
+                
+            except Exception as e:
+                print(f"Error calculating duration: {e}")
+                duration_seconds = 0
+                
+            
+            downtime_log = {
+                "ServiceName": service_name,
+                "Type": "downtime",
+                "DowntimeStart": downtime_start,
+                "DowntimeEnd": downtime_end,
+                "Status": "resolved",
+                "DurationSeconds": duration_seconds,
+                
+            }
+            
+            response = requests.post(LOGSTASH_URL, json=downtime_log)
+            if response.status_code in [200, 201]:
+                print(f"Downtime resolved successfully sent to Logstash ")
+            else:
+                print(f"Error sending downtime resolved to logstash: {response.status_code} - {response.text}")
+            print(f"Downtime ended for {service_name} ")
+            
+        downtime_tracking[service_name] = {
+            "last_seen": now.isoformat() + "Z",
+            "downtime_start": None
+        }
+        
+        
         
  
         # Makes a dictionary from the extracted data
@@ -70,6 +121,7 @@ def process_log(body):
             "Status": status,
             "Message": log_message,
             "Type": "log"
+            
         }
  
         print(f"✅ Received log: {message_dict}")
@@ -100,11 +152,101 @@ def log_callback(ch, method, properties, body):
     """Gets called when a log message is received"""
     process_log(body)
     ch.basic_ack(delivery_tag=method.delivery_tag)
+    
+def check_downtime():
+    while True:
+        now = datetime.now(timezone.utc)
+        print(f"Checking downtime at {now.isoformat()}")
+        
+        for service, state in list(downtime_tracking.items()):
+            last_seen = state.get("last_seen")
+            downtime_start = state.get("downtime_start")
+            
+            # For debugging
+            print(f"Checking service {service}: last_seen={last_seen}, downtime_start={downtime_start}")
+            
+            # Parse the ISO timestamp string back to a datetime object for comparison
+            if last_seen:
+                if isinstance(last_seen, str):
+                    try:
+                        last_seen_dt = datetime.fromisoformat(last_seen.rstrip('Z'))
+                        # Add UTC timezone if missing
+                        if last_seen_dt.tzinfo is None:
+                            last_seen_dt = last_seen_dt.replace(tzinfo=timezone.utc)
+                    except ValueError:
+                        print(f"Error parsing last_seen timestamp for {service}: {last_seen}")
+                        continue
+                else:
+                    last_seen_dt = last_seen
+                
+                time_diff = now - last_seen_dt
+                print(f"Service {service} time difference: {time_diff.total_seconds()} seconds")
+                
+                if not downtime_start and time_diff.total_seconds() > 5:
+                    downtime_tracking[service]["downtime_start"] = now.isoformat() + "Z"
+                    print(f"Downtime started for {service}")
+                    
+                    downtime_log = {
+                        "ServiceName": service,
+                        "Type": "downtime",
+                        "DowntimeStart": downtime_tracking[service]["downtime_start"],
+                        "Status": "Down",
+                        "DurationSeconds": 0,  # Initially 0 at start
+                        "Duration": "00:00:00"  # Initially 0 at start
+                    }
+                    
+                    try:
+                        print(f"Sending downtime log to {LOGSTASH_URL}: {downtime_log}")
+                        response = requests.post(LOGSTASH_URL, json=downtime_log)
+                        print(f"Response status: {response.status_code}")
+                        
+                        if response.status_code in [200, 201]:
+                            print("Downtime started successfully sent to Logstash")
+                        else:
+                            print(f"Error sending downtime started to logstash: {response.status_code} - {response.text}")
+                    except Exception as e:
+                        print(f"Exception sending downtime log: {e}")
+                elif downtime_start and time_diff.total_seconds() > 5:
+                    try:
+                        if downtime_start.endswith('Z'):
+                            start_dt = datetime.fromisoformat(downtime_start.rstrip('Z')).replace(tzinfo=timezone.utc)
+                        else:
+                            start_dt = datetime.fromisoformat(downtime_start).replace(tzinfo=timezone.utc)
+                        duration_seconds = (now - start_dt).total_seconds()
+                        
+                        
+                        # Send an update every 60 seconds
+                        if duration_seconds % 60 < 5:  
+                            downtime_log = {
+                                "ServiceName": service,
+                                "Type": "downtime_update",
+                                "DowntimeStart": downtime_start,
+                                "Status": "Still Down",
+                                "DurationSeconds": duration_seconds,
+                                
+                            }
+                            
+                            try:
+                                print(f"Sending downtime update log to {LOGSTASH_URL}: {downtime_log}")
+                                response = requests.post(LOGSTASH_URL, json=downtime_log)
+                                
+                                if response.status_code in [200, 201]:
+                                    print(f"Downtime update successfully sent to Logstash (Current duration: {duration_formatted})")
+                                else:
+                                    print(f"Error sending downtime update to logstash: {response.status_code} - {response.text}")
+                            except Exception as e:
+                                print(f"Exception sending downtime update log: {e}")
+                    except Exception as e:
+                        print(f"Error calculating ongoing duration for {service}: {e}")
+    
+        
+        # Sleep after checking all services
+        time.sleep(5)  # Check every 5 seconds
  
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
     time.sleep(60)  # Wait for RabbitMQ to start 
-    for attempt in range(10):  # Retry up to 10 times
+    for attempt in range(15):  # Retry up to 10 times
         try:
             print(f"Connecting to RabbitMQ (attempt {attempt + 1})...")
             credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD) #credentials for local development
@@ -132,10 +274,13 @@ def connect():
             traceback.print_exc()  # Log unexpected errors
             time.sleep(5)  # Wait 5 seconds before retrying
     else:
-        print("Unable to connect to RabbitMQ after several attempts.")
+        print("Unable to connect to RabbitMQ after several attempts. {now.isoformat()}")
 
        
  
 if __name__ == "__main__":
+    
+    downtime_thread = threading.Thread(target=check_downtime, daemon=True)
+    downtime_thread.start()
     connect()
 
