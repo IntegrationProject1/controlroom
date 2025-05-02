@@ -15,7 +15,7 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 LOGSTASH_URL = os.getenv("LOGSTASH_URL")
 HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
 LOG_QUEUE = "controlroom.log.test"
-#logstash url for local development
+
 
 downtime_tracking = {}
 
@@ -231,7 +231,7 @@ def check_downtime():
                                 response = requests.post(LOGSTASH_URL, json=downtime_log)
                                 
                                 if response.status_code in [200, 201]:
-                                    print(f"Downtime update successfully sent to Logstash (Current duration: {duration_formatted})")
+                                    print(f"Downtime update successfully sent to Logstash ")
                                 else:
                                     print(f"Error sending downtime update to logstash: {response.status_code} - {response.text}")
                             except Exception as e:
