@@ -15,7 +15,7 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 LOGSTASH_URL = os.getenv("LOGSTASH_URL")
 HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
 LOG_QUEUE = "controlroom.log.test"
-#logstash url for local development
+
 
 downtime_tracking = {}
 
@@ -231,7 +231,7 @@ def check_downtime():
                                 response = requests.post(LOGSTASH_URL, json=downtime_log)
                                 
                                 if response.status_code in [200, 201]:
-                                    print(f"Downtime update successfully sent to Logstash (Current duration: {duration_formatted})")
+                                    print(f"Downtime update successfully sent to Logstash ")
                                 else:
                                     print(f"Error sending downtime update to logstash: {response.status_code} - {response.text}")
                             except Exception as e:
@@ -242,6 +242,18 @@ def check_downtime():
         
         # Sleep after checking all services
         time.sleep(5)  # Check every 5 seconds
+        
+        
+def purge_queues(channel):
+    """Purges the queues to remove any old messages before starting"""
+    try:
+        purged_heartbeat = channel.queue_purge(queue=HEARTBEAT_QUEUE)
+        purged_log = channel.queue_purge(queue=LOG_QUEUE)
+        print(f"Purged {purged_heartbeat['message_count']} messages from {HEARTBEAT_QUEUE} queue")
+        print(f"Purged {purged_log['message_count']} messages from {LOG_QUEUE} queue")
+    except Exception as e:
+        print(f"Error purging queues: {e}")
+        traceback.print_exc()
  
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
@@ -257,6 +269,8 @@ def connect():
             # Declare both queues
             channel.queue_declare(queue=HEARTBEAT_QUEUE, durable=True)
             channel.queue_declare(queue=LOG_QUEUE, durable=True)
+            
+            purge_queues(channel)  # Purge the queues before starting
             
             # Set up consumers for both queues
             channel.basic_consume(queue=HEARTBEAT_QUEUE, on_message_callback=heartbeat_callback)
