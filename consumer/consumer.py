@@ -242,6 +242,18 @@ def check_downtime():
         
         # Sleep after checking all services
         time.sleep(5)  # Check every 5 seconds
+        
+        
+def purge_queues(channel):
+    """Purges the queues to remove any old messages before starting"""
+    try:
+        purged_heartbeat = channel.queue_purge(queue=HEARTBEAT_QUEUE)
+        purged_log = channel.queue_purge(queue=LOG_QUEUE)
+        print(f"Purged {purged_heartbeat['message_count']} messages from {HEARTBEAT_QUEUE} queue")
+        print(f"Purged {purged_log['message_count']} messages from {LOG_QUEUE} queue")
+    except Exception as e:
+        print(f"Error purging queues: {e}")
+        traceback.print_exc()
  
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
@@ -257,6 +269,8 @@ def connect():
             # Declare both queues
             channel.queue_declare(queue=HEARTBEAT_QUEUE, durable=True)
             channel.queue_declare(queue=LOG_QUEUE, durable=True)
+            
+            purge_queues(channel)  # Purge the queues before starting
             
             # Set up consumers for both queues
             channel.basic_consume(queue=HEARTBEAT_QUEUE, on_message_callback=heartbeat_callback)
