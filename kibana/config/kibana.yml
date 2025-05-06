@@ -1,8 +1,10 @@
 server.name: kibana
 server.host: "0.0.0.0"
 elasticsearch.hosts: ["${ELASTICSEARCH_HOST}"]
+# elasticsearch.hosts: ["http://elasticsearch:9200"]
+
 elasticsearch.username: kibana_system
-elasticsearch.password: ${KIBANA_SYSTEM_PASSWORD}
+elasticsearch.password: "${KIBANA_SYSTEM_PASSWORD}"
 
 monitoring.ui.container.elasticsearch.enabled: true
 monitoring.ui.container.logstash.enabled: true
