@@ -5,6 +5,7 @@
       <xs:sequence>
         <xs:element name="ServiceName" type="xs:string"/>
         <xs:element name="Status" type="xs:string"/>
+        <xs:element name="StatusCode" type="xs:int"/>
         <xs:element name="Message" type="xs:string"/>
       </xs:sequence>
     </xs:complexType>

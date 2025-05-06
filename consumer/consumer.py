@@ -57,39 +57,40 @@ def process_log(body):
         # Decode the XML message
         message = body.decode()
         root = ET.fromstring(message)
- 
+
         # Extract relevant data from the XML
         service_name = root.find('ServiceName').text
         status = root.find('Status').text
         log_message = root.find('Message').text
-        
- 
+        status_code = root.find('StatusCode').text if root.find('StatusCode') is not None else "unknown"
+
         # Makes a dictionary from the extracted data
         message_dict = {
             "ServiceName": service_name,
             "Status": status,
             "Message": log_message,
+            "StatusCode": status_code,
             "Type": "log"
         }
- 
+
         print(f"✅ Received log: {message_dict}")
         
-        # Send the message to Logstash
         if "Status" not in message_dict:
             print("⚠️ Error: Message is missing fields (status)")
             return
- 
+
         response = requests.post(LOGSTASH_URL, json=message_dict)
         if response.status_code in [200, 201]:
             print("📨 Log successfully sent to Logstash")
         else:
             print(f"⚠️ Error sending log to logstash: {response.status_code} - {response.text}")
-    
+
     except ET.ParseError:
         print("Error: Invalid XML message")
     except Exception as e:
         print(f"Error: {e}")
         traceback.print_exc()
+
  
 def heartbeat_callback(ch, method, properties, body):
     """Gets called when a heartbeat message is received"""

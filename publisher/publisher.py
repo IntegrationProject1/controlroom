@@ -22,6 +22,7 @@ def dict_to_log_xml(log):
     <Log>
         <ServiceName>{log['ServiceName']}</ServiceName>
         <Status>{log['Status']}</Status>
+        <StatusCode>{log['StatusCode']}</StatusCode>
         <Message>{log['Message']}</Message>
     </Log>
     """
@@ -47,6 +48,11 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 def generate_dummy_logs():
     """Generate a list of dummy logs with random values."""
     statuses = ["OK", "ERROR", "WARNING"]
+    status_codes = {
+        "OK": 200,
+        "ERROR": 500,
+        "WARNING": 300,
+    }
     messages = {
         "ERROR": [
             "Failed to connect to database.",
@@ -66,6 +72,7 @@ def generate_dummy_logs():
         log = {
             "ServiceName": f"TestService_{i}",
             "Status": status,
+            "StatusCode": status_codes[status],  # Adding StatusCode
             "Message": random.choice(messages[status]) if status in messages else ""
         }
         logs.append(log)
