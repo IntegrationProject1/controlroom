@@ -38,7 +38,7 @@ services:
       - xpack.security.enabled=true
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
     ports:
-      - "30051:9200"
+      - "9200:9200"
     ulimits:
       memlock: -1
     restart: unless-stopped
@@ -64,7 +64,7 @@ services:
       - ./kibana/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro,Z
     restart: unless-stopped
     ports:
-      - "30052:5601"
+      - "5601:5601"
       # Ports for local development
 
     networks:
@@ -88,9 +88,9 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
     restart: unless-stopped
     ports:
-      - "30053:5044" # Beats input
-      - "30054:5000/tcp" # Logstash TCP input
-      - "30054:5000/udp" # Logstash UDP input
+      - "5044:5044" # Beats input
+      - "5000:5000/tcp" # Logstash TCP input
+      - "5000:5000/udp" # Logstash UDP input
       # Ports for local development
       # - "5044:5044" # Beats input
       # - "5000:5000/tcp" # Logstash TCP input
@@ -99,19 +99,19 @@ services:
       - elk
 
   #RabbitMQ Instance for local development, comment out for deployment on VM
-  # rabbitmq:
-  #   image: rabbitmq:3-management
-  #   container_name: rabbitmq
-  #   environment:
-  #     RABBITMQ_HOST: rabbitmq
-  #     RABBITMQ_USER: ${RABBITMQ_USER}
-  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-  #     QUEUE_NAME: ${QUEUE_NAME}
-  #   ports:
-  #     - "5672:5672"
-  #     - "15672:15672"
-  #   networks:
-  #     - elk
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      QUEUE_NAME: ${QUEUE_NAME}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - elk
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: controlroom_consumer
