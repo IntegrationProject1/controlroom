@@ -23,7 +23,7 @@ RABBITMQ_HOST = os.getenv("RABBITMQ_HOST", "localhost")  # Use localhost since w
 RABBITMQ_PORT = int(os.getenv("RABBITMQ_PORT", "5672"))
 RABBITMQ_USER = os.getenv("RABBITMQ_USER", "guest")
 RABBITMQ_PASS = os.getenv("RABBITMQ_PASSWORD", "guest")
-LOG_QUEUE = os.getenv("LOG_QUEUE", "controlroom.container.logs")
+LOG_QUEUE = os.getenv("LOG_QUEUE", "controlroom.log.test")
 COLLECTION_INTERVAL = int(os.getenv("COLLECTION_INTERVAL", "30"))  # seconds
  
 # Stats tracking
