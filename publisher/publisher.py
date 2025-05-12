@@ -123,7 +123,7 @@ def publish_logs(channel):
                 )
                 print(f"✅ Sent heartbeat: {heartbeat}")
                 
-                # Send log if it's an error or warning
+                #Send log if it's an error or warning
                 if log["Status"] in ["ERROR", "WARNING"]:
                     log_xml = dict_to_log_xml(log)
                     is_valid, error = validate_log_with_xsd(log_xml)
@@ -132,17 +132,17 @@ def publish_logs(channel):
                         continue
                     channel.basic_publish(
                         exchange='log_monitoring',
-                        routing_key='controlroom.log.test',  # You can change this queue name if needed
+                        routing_key='controlroom.log.event',  
                         body=log_xml,
                         properties=pika.BasicProperties(delivery_mode=2)
                     )
                     print(f"⚠️ Sent log message: {log_xml}")
                 
-                    time.sleep(1)  # Wait 1 seconds before sending the next log
+                time.sleep(1)  # Wait 1 seconds before sending the next log
             last_sent_data = logs  # Store last sent data
         else:
             print("⏳ No new data. Waiting...")
-            time.sleep(1)  # Keep waiting if no new data
+            time.sleep(5)  # Keep waiting if no new data
 
 
 
@@ -162,9 +162,9 @@ def main():
             channel.exchange_declare(exchange='heartbeat_monitoring', exchange_type='direct', durable=True)
             channel.exchange_declare(exchange='log_monitoring', exchange_type='direct', durable=True)
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
-            channel.queue_declare(queue='controlroom.log.test', durable=True)
+            channel.queue_declare(queue='controlroom.log.event', durable=True)
             channel.queue_bind(exchange='heartbeat_monitoring', queue=QUEUE_NAME, routing_key=QUEUE_NAME)
-            channel.queue_bind(exchange='log_monitoring', queue='controlroom.log.test', routing_key='controlroom.log.test')
+            channel.queue_bind(exchange='log_monitoring', queue='controlroom.log.event', routing_key='controlroom.log.test')
             print("Connected to RabbitMQ")
             break
         except pika.exceptions.AMQPConnectionError as e:
