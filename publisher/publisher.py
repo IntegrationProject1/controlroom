@@ -132,7 +132,7 @@ def publish_logs(channel):
                         continue
                     channel.basic_publish(
                         exchange='log_monitoring',
-                        routing_key='controlroom.log.test',  # You can change this queue name if needed
+                        routing_key='controlroom.log.event',  
                         body=log_xml,
                         properties=pika.BasicProperties(delivery_mode=2)
                     )
@@ -162,9 +162,9 @@ def main():
             channel.exchange_declare(exchange='heartbeat_monitoring', exchange_type='direct', durable=True)
             channel.exchange_declare(exchange='log_monitoring', exchange_type='direct', durable=True)
             channel.queue_declare(queue=QUEUE_NAME, durable=True)
-            channel.queue_declare(queue='controlroom.log.test', durable=True)
+            channel.queue_declare(queue='controlroom.log.event', durable=True)
             channel.queue_bind(exchange='heartbeat_monitoring', queue=QUEUE_NAME, routing_key=QUEUE_NAME)
-            channel.queue_bind(exchange='log_monitoring', queue='controlroom.log.test', routing_key='controlroom.log.test')
+            channel.queue_bind(exchange='log_monitoring', queue='controlroom.log.event', routing_key='controlroom.log.test')
             print("Connected to RabbitMQ")
             break
         except pika.exceptions.AMQPConnectionError as e:

@@ -14,7 +14,7 @@ RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 LOGSTASH_URL = os.getenv("LOGSTASH_URL")
 HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
-LOG_QUEUE = "controlroom.log.test"
+LOG_QUEUE = "controlroom.log.event"
 
 
 downtime_tracking = {}
