@@ -247,10 +247,9 @@ def check_downtime():
 def purge_queues(channel):
     """Purges the queues to remove any old messages before starting"""
     try:
-        purged_heartbeat = channel.queue_purge(queue=HEARTBEAT_QUEUE)
-        purged_log = channel.queue_purge(queue=LOG_QUEUE)
-        print(f"Purged {purged_heartbeat['message_count']} messages from {HEARTBEAT_QUEUE} queue")
-        print(f"Purged {purged_log['message_count']} messages from {LOG_QUEUE} queue")
+        channel.queue_purge(queue=HEARTBEAT_QUEUE)
+        channel.queue_purge(queue=LOG_QUEUE)
+        
     except Exception as e:
         print(f"Error purging queues: {e}")
         traceback.print_exc()
