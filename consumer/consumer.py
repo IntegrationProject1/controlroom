@@ -216,26 +216,25 @@ def check_downtime():
                         
                         
                         # Send an update every 60 seconds
-                        if duration_seconds % 60 < 5:  
-                            downtime_log = {
-                                "ServiceName": service,
-                                "Type": "downtime_update",
-                                "DowntimeStart": downtime_start,
-                                "Status": "Still Down",
-                                "DurationSeconds": duration_seconds,
-                                
-                            }
+                        
+                        downtime_log = {
+                            "ServiceName": service,
+                            "Type": "downtime",
+                            "DowntimeStart": downtime_start,
+                            "Status": "Still Down",
+                            "DurationSeconds": duration_seconds,
                             
-                            try:
-                                print(f"Sending downtime update log to {LOGSTASH_URL}: {downtime_log}")
-                                response = requests.post(LOGSTASH_URL, json=downtime_log)
-                                
-                                if response.status_code in [200, 201]:
-                                    print(f"Downtime update successfully sent to Logstash ")
-                                else:
-                                    print(f"Error sending downtime update to logstash: {response.status_code} - {response.text}")
-                            except Exception as e:
-                                print(f"Exception sending downtime update log: {e}")
+                        }
+                            
+                        
+                        print(f"Sending downtime update log to {LOGSTASH_URL}: {downtime_log}")
+                        response = requests.post(LOGSTASH_URL, json=downtime_log)
+                            
+                        if response.status_code in [200, 201]:
+                            print(f"Downtime update successfully sent to Logstash ")
+                        else:
+                            print(f"Error sending downtime update to logstash: {response.status_code} - {response.text}")
+                            
                     except Exception as e:
                         print(f"Error calculating ongoing duration for {service}: {e}")
     
@@ -249,6 +248,7 @@ def purge_queues(channel):
     try:
         channel.queue_purge(queue=HEARTBEAT_QUEUE)
         channel.queue_purge(queue=LOG_QUEUE)
+        print("Queues purged successfully")
         
     except Exception as e:
         print(f"Error purging queues: {e}")
