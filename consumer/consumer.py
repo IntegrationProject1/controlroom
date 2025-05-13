@@ -15,7 +15,7 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 LOGSTASH_URL = os.getenv("LOGSTASH_URL")
 HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
 LOG_QUEUE = "controlroom.log.test"
-ALERT_EXCHANGE = "controlroom_mail"  # alert exchange toegevoegd
+
 
 downtime_tracking = {}
 
@@ -253,12 +253,12 @@ def purge_queues(channel):
 def send_email_alert(service_name, subject, message):
     """Sends an email alert message as XML to RabbitMQ exchange"""
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)))
-        channel = connection.channel()
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST,port=RABBITMQ_PORT,credentials=pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)))channel = connection.channel()
 
-        channel.exchange_declare(exchange=ALERT_EXCHANGE, exchange_type="fanout", durable=True)
+        # Gebruik de bestaande 'email' exchange van type 'topic'
+        channel.exchange_declare(exchange="email", exchange_type="topic", durable=True)
 
-xml_message = f"""<?xml version="1.0" encoding="UTF-8"?>
+        xml_message = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Alert>
     <Timestamp>{datetime.utcnow().isoformat()}</Timestamp>
     <ServiceName>{service_name}</ServiceName>
@@ -267,12 +267,14 @@ xml_message = f"""<?xml version="1.0" encoding="UTF-8"?>
 </Alert>
 """
 
-        channel.basic_publish(exchange=ALERT_EXCHANGE, routing_key="", body=xml_message.encode())
+        # Publiceer naar de topic exchange met routing key 'mail'
+        channel.basic_publish(exchange="email", routing_key="mail", body=xml_message.encode())
         print(f"📧 Email alert sent for {service_name}: {subject}")
         connection.close()
     except Exception as e:
         print(f"Error sending email alert: {e}")
         traceback.print_exc()
+
 
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
