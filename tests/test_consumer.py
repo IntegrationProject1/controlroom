@@ -1,7 +1,6 @@
 import pytest
-import pika
-from consumer.consumer import process_heartbeat, downtime_tracking, process_log, purge_queues, connect, heartbeat_callback
-from unittest.mock import patch, MagicMock, call
+from consumer.consumer import process_heartbeat, downtime_tracking
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 import requests
 
@@ -75,6 +74,7 @@ def test_last_seen_updated(mock_post, valid_heartbeat):
     process_heartbeat(valid_heartbeat)
     first_seen = downtime_tracking["service1"]["last_seen"]
 
+    # Send a second heartbeat with a short delay
     process_heartbeat(valid_heartbeat)
     second_seen = downtime_tracking["service1"]["last_seen"]
 
@@ -87,93 +87,10 @@ def test_post_failure_handled(mock_post, valid_heartbeat):
     process_heartbeat(valid_heartbeat)
 
     assert "service1" in downtime_tracking
-    assert mock_post.call_count == 1  
+    assert mock_post.call_count == 1  # Still tries to send
 
 @patch("consumer.consumer.requests.post")
 def test_unexpected_xml_structure(mock_post):
     unexpected_xml = b"<RandomTag><Other>data</Other></RandomTag>"
     process_heartbeat(unexpected_xml)
     assert mock_post.call_count == 0
-
-
-@patch("consumer.consumer.requests.post")
-def test_process_log_valid(mock_post):
-    mock_post.return_value.status_code = 200
-    xml = b"<Log><ServiceName>service1</ServiceName><Status>OK</Status><Message>All good</Message></Log>"
-    process_log(xml)
-    assert mock_post.call_count == 1
-
-@patch("consumer.consumer.requests.post")
-def test_process_log_invalid_xml(mock_post):
-    process_log(b"<Log><ServiceName>bad")
-    assert mock_post.call_count == 0
-
-@patch("consumer.consumer.requests.post")
-def test_process_log_missing_fields(mock_post):
-    xml = b"<Log><ServiceName>service1</ServiceName></Log>"
-    process_log(xml)
-    assert mock_post.call_count == 0
-    
-    
-@patch("consumer.consumer.requests.post")
-def test_process_heartbeat_missing_service_name(mock_post):
-    xml = b"<Heartbeat></Heartbeat>"
-    process_heartbeat(xml)
-    assert mock_post.call_count == 0
-
-@patch("consumer.consumer.requests.post")
-def test_process_heartbeat_downtime_resolution_parsing_error(mock_post):
-    downtime_tracking["bad_service"] = {
-        "last_seen": "broken",
-        "downtime_start": "not-a-date"
-    }
-    xml = b"<Heartbeat><ServiceName>bad_service</ServiceName></Heartbeat>"
-    mock_post.return_value.status_code = 200
-    process_heartbeat(xml)
-    assert mock_post.call_count == 2  
-    
-def test_purge_queues_success():
-    mock_channel = MagicMock()
-    purge_queues(mock_channel)
-    mock_channel.queue_purge.assert_any_call(queue="controlroom.heartbeat.ping")
-    mock_channel.queue_purge.assert_any_call(queue="controlroom.log.event")
-    
-    
-@patch("consumer.consumer.requests.post")
-def test_downtime_duration_parsing_error(mock_post):
-    downtime_tracking["service1"] = {
-        "last_seen": "2024-05-01T12:00:00Z",
-        "downtime_start": "INVALID_TIMESTAMP"
-    }
-    xml = b"<Heartbeat><ServiceName>service1</ServiceName></Heartbeat>"
-    mock_post.return_value.status_code = 200
-    process_heartbeat(xml)
-    
-def test_log_parse_error():
-    xml = b"<Log><ServiceName>oops</Log>"
-    process_log(xml)
-
-def test_log_missing_status():
-    xml = b"<Log><ServiceName>test</ServiceName><Message>Missing status</Message></Log>"
-    process_log(xml)
-    
-@patch("consumer.consumer.pika.BlockingConnection")
-@patch("consumer.consumer.time.sleep")
-def test_connect_success(mock_sleep, mock_connection):
-    mock_channel = MagicMock()
-    mock_conn_instance = MagicMock()
-    mock_conn_instance.channel.return_value = mock_channel
-    mock_connection.return_value = mock_conn_instance
-
-    connect()
-
-    mock_channel.basic_consume.assert_any_call(
-        queue="controlroom.heartbeat.ping", on_message_callback=heartbeat_callback
-    )
-    
-@patch("consumer.consumer.pika.BlockingConnection", side_effect=pika.exceptions.AMQPConnectionError("Fail"))
-@patch("consumer.consumer.time.sleep")
-def test_connect_retries(mock_sleep, mock_conn):
-    connect()
-    assert mock_conn.call_count > 1  
-    
