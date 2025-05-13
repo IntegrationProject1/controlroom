@@ -4,98 +4,296 @@ import requests
 import traceback
 import time
 import os
-
+from datetime import datetime, timedelta, timezone
+import threading
+ 
 # Configuratie
-RABBITMQ_HOST = "integrationproject-2425s2-001.westeurope.cloudapp.azure.com"  
-RABBITMQ_PORT = 30020
+RABBITMQ_HOST = os.getenv("RABBITMQ_HOST")
+RABBITMQ_PORT = os.getenv("RABBITMQ_PORT")
 RABBITMQ_USERNAME = os.getenv("RABBITMQ_USER")
-RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASS")
-LOGSTASH_URL = "http://logstash:5044"
-# Rabbitmq port for local development:
-#RABBITMQ_PORT = 5672
-QUEUE_NAME = "controlroom.heartbeat.ping"
-#logstash url for local development
-# LOGSTASH_URL = "http://logstash:5044"
+RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
+LOGSTASH_URL = os.getenv("LOGSTASH_URL")
+HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
+LOG_QUEUE = "controlroom.log.event"
 
 
-def process_message(body):
-    """Processes the message and sends it to Logstash"""
+downtime_tracking = {}
+
+def process_heartbeat(body):
+    """Processes the heartbeat message and sends it to Logstash"""
     try:
-        # Decode the XML message
         message = body.decode()
         root = ET.fromstring(message)
-
+ 
         # Extract relevant data from the XML
         service_name = root.find('ServiceName').text
-        status = root.find('Status').text
-        timestamp = root.find('Timestamp').text
-        heartbeat_interval = root.find('HeartBeatInterval').text
-        version = root.find('.//Version').text
-        host = root.find('.//Host').text
-        environment = root.find('.//Environment').text
-
+        
+        now = datetime.now(timezone.utc)
+        service_state = downtime_tracking.get(service_name)
+        
+        # Check if the service was down
+        if service_state and service_state.get("downtime_start"):
+            downtime_end = now.isoformat() 
+            downtime_start = service_state["downtime_start"]
+            
+            # Calculate downtime duration in seconds
+            try:
+                if downtime_start.endswith('Z'):
+                    start_dt = datetime.fromisoformat(downtime_start.rstrip('Z')).replace(tzinfo=timezone.utc)
+                else:
+                    start_dt = datetime.fromisoformat(downtime_start).replace(tzinfo=timezone.utc)
+                
+                # Calculate seconds as an integer
+                duration_seconds = 5
+                
+                
+            except Exception as e:
+                print(f"Error calculating duration: {e}")
+                duration_seconds = 0
+                
+            
+            downtime_log = {
+                "ServiceName": service_name,
+                "Type": "downtime",
+                "DowntimeStart": downtime_start,
+                "DowntimeEnd": downtime_end,
+                "Status": "resolved",
+                "DurationSeconds": duration_seconds,
+                
+            }
+            
+            response = requests.post(LOGSTASH_URL, json=downtime_log)
+            if response.status_code in [200, 201]:
+                print(f"Downtime resolved successfully sent to Logstash ")
+            else:
+                print(f"Error sending downtime resolved to logstash: {response.status_code} - {response.text}")
+            print(f"Downtime ended for {service_name} ")
+            
+        downtime_tracking[service_name] = {
+            "last_seen": now.isoformat() + "Z",
+            "downtime_start": None
+        }
+        
+        
+        
+ 
         # Makes a dictionary from the extracted data
         message_dict = {
             "ServiceName": service_name,
-            "Status": status,
-            "Timestamp": timestamp,
-            "HeartBeatInterval": heartbeat_interval,
-            "Version": version,
-            "Host": host,
-            "Environment": environment
+            "Type": "heartbeat"
         }
-
-        print(f"✅ Received message: {message_dict}")
+ 
+        print(f"✅ Received heartbeat: {message_dict}")
         
         # Send the message to Logstash
-        if "Status" not in message_dict or "Timestamp" not in message_dict:
-            print("⚠️ Error: Message is missing fields (status/timestamp)")
+        if "ServiceName" not in message_dict :
+            print("⚠️ Error: Message is missing fields (ServiceName)")
             return
-
+ 
         response = requests.post(LOGSTASH_URL, json=message_dict)
         if response.status_code in [200, 201]:
-            print("📨  Message succesfully sent to Logstash")
+            print("📨 Heartbeat successfully sent to Logstash")
         else:
-            print(f"⚠️ Error sending message to logstash: {response.status_code} - {response.text}")
+            print(f"⚠️ Error sending heartbeat to logstash: {response.status_code} - {response.text}")
     
     except ET.ParseError:
         print("⚠️ Error: Invalid XML message")
     except Exception as e:
         print(f"❌ Error: {e}")
         traceback.print_exc()
-
-def callback(ch, method, properties, body):
-    """Gets called when a message is received"""
-    process_message(body)
+ 
+def process_log(body):
+    """Processes the log message and sends it to Logstash"""
+    try:
+        # Decode the XML message
+        message = body.decode()
+        root = ET.fromstring(message)
+ 
+        # Extract relevant data from the XML
+        service_name = root.find('ServiceName').text
+        status = root.find('Status').text
+        log_message = root.find('Message').text
+        
+ 
+        # Makes a dictionary from the extracted data
+        message_dict = {
+            "ServiceName": service_name,
+            "Status": status,
+            "Message": log_message,
+            "Type": "log"
+            
+        }
+ 
+        print(f"✅ Received log: {message_dict}")
+        
+        # Send the message to Logstash
+        if "Status" not in message_dict:
+            print("⚠️ Error: Message is missing fields (status)")
+            return
+ 
+        response = requests.post(LOGSTASH_URL, json=message_dict)
+        if response.status_code in [200, 201]:
+            print("📨 Log successfully sent to Logstash")
+        else:
+            print(f"⚠️ Error sending log to logstash: {response.status_code} - {response.text}")
+    
+    except ET.ParseError:
+        print("Error: Invalid XML message")
+    except Exception as e:
+        print(f"Error: {e}")
+        traceback.print_exc()
+ 
+def heartbeat_callback(ch, method, properties, body):
+    """Gets called when a heartbeat message is received"""
+    process_heartbeat(body)
     ch.basic_ack(delivery_tag=method.delivery_tag)
-
+ 
+def log_callback(ch, method, properties, body):
+    """Gets called when a log message is received"""
+    process_log(body)
+    ch.basic_ack(delivery_tag=method.delivery_tag)
+    
+def check_downtime():
+    while True:
+        now = datetime.now(timezone.utc)
+        print(f"Checking downtime at {now.isoformat()}")
+        
+        for service, state in list(downtime_tracking.items()):
+            last_seen = state.get("last_seen")
+            downtime_start = state.get("downtime_start")
+            
+            # For debugging
+            print(f"Checking service {service}: last_seen={last_seen}, downtime_start={downtime_start}")
+            
+            # Parse the ISO timestamp string back to a datetime object for comparison
+            if last_seen:
+                if isinstance(last_seen, str):
+                    try:
+                        last_seen_dt = datetime.fromisoformat(last_seen.rstrip('Z'))
+                        # Add UTC timezone if missing
+                        if last_seen_dt.tzinfo is None:
+                            last_seen_dt = last_seen_dt.replace(tzinfo=timezone.utc)
+                    except ValueError:
+                        print(f"Error parsing last_seen timestamp for {service}: {last_seen}")
+                        continue
+                else:
+                    last_seen_dt = last_seen
+                
+                time_diff = now - last_seen_dt
+                print(f"Service {service} time difference: {time_diff.total_seconds()} seconds")
+                
+                if not downtime_start and time_diff.total_seconds() > 5:
+                    downtime_tracking[service]["downtime_start"] = now.isoformat() + "Z"
+                    print(f"Downtime started for {service}")
+                    
+                    downtime_log = {
+                        "ServiceName": service,
+                        "Type": "downtime",
+                        "DowntimeStart": downtime_tracking[service]["downtime_start"],
+                        "Status": "Down",
+                        "DurationSeconds": 0,  # Initially 0 at start
+                        "Duration": "00:00:00"  # Initially 0 at start
+                    }
+                    
+                    try:
+                        print(f"Sending downtime log to {LOGSTASH_URL}: {downtime_log}")
+                        response = requests.post(LOGSTASH_URL, json=downtime_log)
+                        print(f"Response status: {response.status_code}")
+                        
+                        if response.status_code in [200, 201]:
+                            print("Downtime started successfully sent to Logstash")
+                        else:
+                            print(f"Error sending downtime started to logstash: {response.status_code} - {response.text}")
+                    except Exception as e:
+                        print(f"Exception sending downtime log: {e}")
+                elif downtime_start and time_diff.total_seconds() > 5:
+                    try:
+                        if downtime_start.endswith('Z'):
+                            start_dt = datetime.fromisoformat(downtime_start.rstrip('Z')).replace(tzinfo=timezone.utc)
+                        else:
+                            start_dt = datetime.fromisoformat(downtime_start).replace(tzinfo=timezone.utc)
+                        duration_seconds = 5 
+                        
+                        
+                        # Send an update every 60 seconds
+                        
+                        downtime_log = {
+                            "ServiceName": service,
+                            "Type": "downtime",
+                            "DowntimeStart": downtime_start,
+                            "Status": "Still Down",
+                            "DurationSeconds": duration_seconds,
+                            
+                        }
+                            
+                        
+                        print(f"Sending downtime update log to {LOGSTASH_URL}: {downtime_log}")
+                        response = requests.post(LOGSTASH_URL, json=downtime_log)
+                            
+                        if response.status_code in [200, 201]:
+                            print(f"Downtime update successfully sent to Logstash ")
+                        else:
+                            print(f"Error sending downtime update to logstash: {response.status_code} - {response.text}")
+                            
+                    except Exception as e:
+                        print(f"Error calculating ongoing duration for {service}: {e}")
+    
+        
+        # Sleep after checking all services
+        time.sleep(5)  # Check every 5 seconds
+        
+        
+def purge_queues(channel):
+    """Purges the queues to remove any old messages before starting"""
+    try:
+        channel.queue_purge(queue=HEARTBEAT_QUEUE)
+        channel.queue_purge(queue=LOG_QUEUE)
+        print("Queues purged successfully")
+        
+    except Exception as e:
+        print(f"Error purging queues: {e}")
+        traceback.print_exc()
+ 
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
-    # time.sleep(60)  # Wait for RabbitMQ to start (Local development)
-    for attempt in range(10):  # Retry up to 10 times
+    time.sleep(60)  # Wait for RabbitMQ to start 
+    for attempt in range(15):  # Retry up to 10 times
         try:
-            print(f"🔄 Connecting to RabbitMQ (attempt {attempt + 1})...")
+            print(f"Connecting to RabbitMQ (attempt {attempt + 1})...")
             credentials = pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD) #credentials for local development
             connection_params = pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=credentials)
             connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
-            channel.exchange_declare(exchange='heartbeat', exchange_type='fanout', durable=True)
-            channel.queue_declare(queue=QUEUE_NAME, durable=True)
-            channel.queue_bind(exchange='heartbeat', queue=QUEUE_NAME)
-            channel.basic_consume(queue=QUEUE_NAME, on_message_callback=callback)
-            print("🎧 Waiting for messages...")
+            
+            # Declare both queues
+            channel.queue_declare(queue=HEARTBEAT_QUEUE, durable=True)
+            channel.queue_declare(queue=LOG_QUEUE, durable=True)
+            
+            purge_queues(channel)  # Purge the queues before starting
+            
+            # Set up consumers for both queues
+            channel.basic_consume(queue=HEARTBEAT_QUEUE, on_message_callback=heartbeat_callback)
+            channel.basic_consume(queue=LOG_QUEUE, on_message_callback=log_callback)
+            
+            print("Waiting for heartbeats and logs...")
             channel.start_consuming()
-            break  # Exit the loop if the connection is successful
+            break
         except pika.exceptions.AMQPConnectionError as e:
-            print(f"❌ Error connecting to RabbitMQ: {e}")
+            print(f"Error connecting to RabbitMQ: {e}")
             traceback.print_exc()  # Log the full traceback for debugging
             time.sleep(5)  # Wait 5 seconds before retrying
         except Exception as e:
-            print(f"❌ Unexpected error: {e}")
+            print(f"Unexpected error: {e}")
             traceback.print_exc()  # Log unexpected errors
             time.sleep(5)  # Wait 5 seconds before retrying
     else:
-        print("❌ Unable to connect to RabbitMQ after several attempts.")
+        print("Unable to connect to RabbitMQ after several attempts. {now.isoformat()}")
 
+       
+ 
 if __name__ == "__main__":
+    
+    downtime_thread = threading.Thread(target=check_downtime, daemon=True)
+    downtime_thread.start()
     connect()
+
