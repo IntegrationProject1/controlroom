@@ -255,7 +255,8 @@ def purge_queues(channel):
 def send_email_alert(service_name, subject, message):
     """Sends an email alert message as XML to RabbitMQ exchange"""
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST,port=RABBITMQ_PORT,credentials=pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)))channel = connection.channel()
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)))
+        channel = connection.channel()
 
         # Gebruik de bestaande 'email' exchange van type 'topic'
         channel.exchange_declare(exchange="email", exchange_type="topic", durable=True)
