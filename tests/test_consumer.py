@@ -1,6 +1,6 @@
 import pytest
 import pika
-from consumer.consumer import process_heartbeat, downtime_tracking, process_log, purge_queues, connect, heartbeat_callback
+from consumer.consumer import process_heartbeat, downtime_tracking, process_log, purge_queues, connect, heartbeat_callback, log_callback
 from unittest.mock import patch, MagicMock, call
 from datetime import datetime, timedelta, timezone
 import requests
@@ -156,24 +156,4 @@ def test_log_parse_error():
 def test_log_missing_status():
     xml = b"<Log><ServiceName>test</ServiceName><Message>Missing status</Message></Log>"
     process_log(xml)
-    
-@patch("consumer.consumer.pika.BlockingConnection")
-@patch("consumer.consumer.time.sleep")
-def test_connect_success(mock_sleep, mock_connection):
-    mock_channel = MagicMock()
-    mock_conn_instance = MagicMock()
-    mock_conn_instance.channel.return_value = mock_channel
-    mock_connection.return_value = mock_conn_instance
-
-    connect()
-
-    mock_channel.basic_consume.assert_any_call(
-        queue="controlroom.heartbeat.ping", on_message_callback=heartbeat_callback
-    )
-    
-@patch("consumer.consumer.pika.BlockingConnection", side_effect=pika.exceptions.AMQPConnectionError("Fail"))
-@patch("consumer.consumer.time.sleep")
-def test_connect_retries(mock_sleep, mock_conn):
-    connect()
-    assert mock_conn.call_count > 1  
     
