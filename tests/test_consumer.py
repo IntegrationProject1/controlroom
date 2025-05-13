@@ -1,6 +1,6 @@
 import pytest
 import pika
-from consumer.consumer import process_heartbeat, downtime_tracking, process_log, purge_queues, connect, heartbeat_callback
+from consumer.consumer import process_heartbeat, downtime_tracking, process_log, purge_queues, connect, heartbeat_callback, log_callback
 from unittest.mock import patch, MagicMock, call
 from datetime import datetime, timedelta, timezone
 import requests
@@ -160,20 +160,48 @@ def test_log_missing_status():
 @patch("consumer.consumer.pika.BlockingConnection")
 @patch("consumer.consumer.time.sleep")
 def test_connect_success(mock_sleep, mock_connection):
+    
     mock_channel = MagicMock()
     mock_conn_instance = MagicMock()
     mock_conn_instance.channel.return_value = mock_channel
     mock_connection.return_value = mock_conn_instance
 
-    connect()
+    
+    mock_channel.start_consuming.side_effect = KeyboardInterrupt()
 
+    try:
+        connect()
+    except KeyboardInterrupt:
+        pass  
+
+    
     mock_channel.basic_consume.assert_any_call(
         queue="controlroom.heartbeat.ping", on_message_callback=heartbeat_callback
     )
+    mock_channel.basic_consume.assert_any_call(
+        queue="controlroom.log.event", on_message_callback=log_callback
+    )
     
-@patch("consumer.consumer.pika.BlockingConnection", side_effect=pika.exceptions.AMQPConnectionError("Fail"))
 @patch("consumer.consumer.time.sleep")
-def test_connect_retries(mock_sleep, mock_conn):
-    connect()
+def test_connect_retries(mock_sleep):
+    patcher = patch("consumer.consumer.pika.BlockingConnection")
+    mock_conn = patcher.start()
+    
+    mock_conn.side_effect = [
+        pika.exceptions.AMQPConnectionError("Connection failed"), 
+        MagicMock()
+    ]
+    
+    mock_channel = MagicMock()
+    mock_channel.start_consuming.side_effect = KeyboardInterrupt()
+    mock_conn.return_value.channel.return_value = mock_channel
+    
+    try:
+        connect()
+    except KeyboardInterrupt:
+        pass  
+    
+    patcher.stop()
+    
     assert mock_conn.call_count > 1  
     
