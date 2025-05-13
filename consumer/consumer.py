@@ -15,7 +15,7 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 LOGSTASH_URL = os.getenv("LOGSTASH_URL")
 HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
 LOG_QUEUE = "controlroom.log.test"
-ALERT_EXCHANGE = "controlroom.alert.mail"  # alert exchange toegevoegd
+ALERT_EXCHANGE = "controlroom_mail"  # alert exchange toegevoegd
 
 downtime_tracking = {}
 
@@ -258,11 +258,12 @@ def send_email_alert(service_name, subject, message):
 
         channel.exchange_declare(exchange=ALERT_EXCHANGE, exchange_type="fanout", durable=True)
 
-        xml_message = f"""<?xml version="1.0" encoding="UTF-8"?>
+xml_message = f"""<?xml version="1.0" encoding="UTF-8"?>
 <Alert>
+    <Timestamp>{datetime.utcnow().isoformat()}</Timestamp>
     <ServiceName>{service_name}</ServiceName>
-    <Subject>{subject}</Subject>
-    <Message>{message}</Message>
+    <ErrorType>{subject}</ErrorType>
+    <Description>{message}</Description>
 </Alert>
 """
 
