@@ -44,7 +44,7 @@ def process_heartbeat(body):
                     start_dt = datetime.fromisoformat(downtime_start).replace(tzinfo=timezone.utc)
                 
                 # Calculate seconds as an integer
-                duration_seconds = int((now - start_dt).total_seconds())
+                duration_seconds = 5
                 
                 
             except Exception as e:
@@ -212,7 +212,7 @@ def check_downtime():
                             start_dt = datetime.fromisoformat(downtime_start.rstrip('Z')).replace(tzinfo=timezone.utc)
                         else:
                             start_dt = datetime.fromisoformat(downtime_start).replace(tzinfo=timezone.utc)
-                        duration_seconds = (now - start_dt).total_seconds()
+                        duration_seconds = 5 
                         
                         
                         # Send an update every 60 seconds
