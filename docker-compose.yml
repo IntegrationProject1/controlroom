@@ -37,6 +37,7 @@ services:
       - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
       - xpack.security.enabled=true
       - "xpack.ml.enabled=false" # Disable machine learning, to save memory
+   
     ports:
       - "9200:9200"
     ulimits:
