@@ -124,6 +124,7 @@ services:
       - RABBITMQ_USER=${RABBITMQ_USER}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD}
       - LOGSTASH_URL=${LOGSTASH_URL}
+    restart: unless-stopped
     networks:
       - elk
 
