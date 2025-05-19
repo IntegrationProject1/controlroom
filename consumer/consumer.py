@@ -279,7 +279,7 @@ def send_email_alert(service_name, subject, message):
         traceback.print_exc()
         
 def send_startup_notification():
-    "Sends a test email when the control room starts up"
+    """Sends a test email when the control room starts up"""
     send_email_alert("Controlroom", "Startup Notification", "Controlroom has started monitoring microservices.")
     print("🚀 Startup notification email sent.")
 
