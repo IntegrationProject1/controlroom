@@ -277,7 +277,11 @@ def send_email_alert(service_name, subject, message):
     except Exception as e:
         print(f"Error sending email alert: {e}")
         traceback.print_exc()
-
+        
+def send_startup_notification():
+    """Stuurt een testmail bij het opstarten van de controlroom"""
+    send_email_alert("Controlroom", "Startup Notification", "Controlroom has started monitoring microservices.")
+    print("🚀 Startup notification email sent.")
 
 def connect():
     """Connects to RabbitMQ and starts consuming messages"""
@@ -315,6 +319,7 @@ def connect():
         print("Unable to connect to RabbitMQ after several attempts.")
 
 if __name__ == "__main__":
+    send_startup_notification()
     downtime_thread = threading.Thread(target=check_downtime, daemon=True)
     downtime_thread.start()
     connect()
