@@ -262,22 +262,30 @@ def purge_queues(channel):
 def send_email_alert(service_name, subject, message):
     """Sends an email alert message as XML to RabbitMQ exchange"""
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST, port=RABBITMQ_PORT, credentials=pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(
+            host=RABBITMQ_HOST,
+            port=RABBITMQ_PORT,
+            credentials=pika.PlainCredentials(RABBITMQ_USERNAME, RABBITMQ_PASSWORD)
+        ))
         channel = connection.channel()
 
-        # Gebruik de bestaande 'email' exchange van type 'topic'
+        # Declare the topic exchange if not already existing
         channel.exchange_declare(exchange="email", exchange_type="topic", durable=True)
 
+        # Build XML message according to the required structure
         xml_message = f"""<?xml version="1.0" encoding="UTF-8"?>
-<Alert>
-    <Timestamp>{datetime.utcnow().isoformat()}</Timestamp>
-    <ServiceName>{service_name}</ServiceName>
-    <ErrorType>{subject}</ErrorType>
-    <Description>{message}</Description>
-</Alert>
-"""
+        <emailMessage service="{service_name}">
+        <to>reply.expomail@gmail.com</to>
+        <from>no.reply.expomail@gmail.com</from>
+        <subject>{subject}</subject>
+        <title>{subject}</title>
+        <opener>Beste beheerder,</opener>
+        <body>{message}</body>
+        <footer>Met vriendelijke groet,\nControlroom Monitoring Systeem</footer>
+        </emailMessage>
+        """
 
-        # Publiceer naar de topic exchange met routing key 'mail'
+        # Publish to topic exchange with routing key "mail"
         channel.basic_publish(exchange="email", routing_key="mail", body=xml_message.encode())
         print(f"📧 Email alert sent for {service_name}: {subject}")
         connection.close()
