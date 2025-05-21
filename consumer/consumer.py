@@ -272,26 +272,31 @@ def send_email_alert(service_name, subject, message):
         # Declare the topic exchange if not already existing
         channel.exchange_declare(exchange="email", exchange_type="topic", durable=True)
 
-        # Build XML message according to the required structure
+        # Always use 'controlroom' as sender service
+        sender_service = "controlroom"
+        full_message = f"{message}Betreffende service: {service_name}"
+
+        # Build XML message
         xml_message = f"""<?xml version="1.0" encoding="UTF-8"?>
-        <emailMessage service="{service_name}">
-        <to>reply.expomail@gmail.com</to>
-        <from>no.reply.expomail@gmail.com</from>
-        <subject>{subject}</subject>
-        <title>{subject}</title>
-        <opener>Beste beheerder,</opener>
-        <body>{message}</body>
-        <footer>Met vriendelijke groet,\nControlroom Monitoring Systeem</footer>
-        </emailMessage>
-        """
+<emailMessage service="{sender_service}">
+    <to>reply.expomail@gmail.com</to>
+    <from>no.reply.expomail@gmail.com</from>
+    <subject>{subject}</subject>
+    <title>{subject}</title>
+    <opener>Beste beheerder,</opener>
+    <body>{full_message}</body>
+    <footer>Met vriendelijke groet, Controlroom Monitoring Systeem</footer>
+</emailMessage>
+"""
 
         # Publish to topic exchange with routing key "mail"
         channel.basic_publish(exchange="email", routing_key="mail", body=xml_message.encode())
-        print(f"📧 Email alert sent for {service_name}: {subject}")
+        print(f"📧 Email alert sent (service={service_name}, subject={subject})")
         connection.close()
     except Exception as e:
         print(f"Error sending email alert: {e}")
         traceback.print_exc()
+
         
 def send_startup_notification():
     """Sends a test email when the control room starts up"""
