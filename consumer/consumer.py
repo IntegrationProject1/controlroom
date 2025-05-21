@@ -69,8 +69,7 @@ def process_heartbeat(body):
                 print(f"Error sending downtime resolved to logstash: {response.status_code} - {response.text}")
             print(f"Downtime ended for {service_name} ")
 
-            # Verstuur resolved alert
-            send_email_alert(service_name, "Downtime Resolved", f"{service_name} is weer online na {duration_seconds} seconden downtime.")
+            
 
         downtime_tracking[service_name] = {
             "last_seen": now.isoformat() + "Z",
@@ -300,7 +299,7 @@ def send_email_alert(service_name, subject, message):
         
 def send_startup_notification():
     """Sends a test email when the control room starts up"""
-    send_email_alert("Controlroom", "Startup Notification", "Controlroom has started monitoring microservices.")
+    send_email_alert("controlroom", "Startup Notification", "Controlroom has started monitoring microservices.")
     print("🚀 Startup notification email sent.")
 
 def connect():
