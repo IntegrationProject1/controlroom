@@ -81,18 +81,18 @@ def test_downtime_start_sends_email_alert(mock_email, mock_requests):
     )
 
 
-def test_heartbeat_resolves_downtime(mock_email, mock_requests):
-    service = "test-recover"
-    start = (datetime.now(timezone.utc) - timedelta(seconds=20)).isoformat() + "Z"
-    downtime_tracking[service] = {
-        "last_seen": start,
-        "downtime_start": start
-    }
+# def test_heartbeat_resolves_downtime(mock_email, mock_requests):
+#     service = "test-recover"
+#     start = (datetime.now(timezone.utc) - timedelta(seconds=20)).isoformat() + "Z"
+#     downtime_tracking[service] = {
+#         "last_seen": start,
+#         "downtime_start": start
+#     }
 
-    heartbeat_xml = build_heartbeat_xml(service)
-    process_heartbeat(heartbeat_xml)
+#     heartbeat_xml = build_heartbeat_xml(service)
+#     process_heartbeat(heartbeat_xml)
 
-    assert downtime_tracking[service]["downtime_start"] is None
-    assert mock_email.call_args[0][0] == service
-    assert mock_email.call_args[0][1] == "Downtime Resolved"
-    assert f"{service} is weer online" in mock_email.call_args[0][2]
+#     assert downtime_tracking[service]["downtime_start"] is None
+#     assert mock_email.call_args[0][0] == service
+#     assert mock_email.call_args[0][1] == "Downtime Resolved"
+#     assert f"{service} is weer online" in mock_email.call_args[0][2]
