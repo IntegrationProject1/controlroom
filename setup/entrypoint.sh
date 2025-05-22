@@ -5,9 +5,8 @@ set -o pipefail
 
 source "${BASH_SOURCE[0]%/*}"/lib.sh
 
-
 # --------------------------------------------------------
-# Users declarations
+# Gebruikers en hun wachtwoorden (ingeladen via env-vars)
 
 declare -A users_passwords
 users_passwords=(
@@ -20,6 +19,7 @@ users_passwords=(
 	[beats_system]="${BEATS_SYSTEM_PASSWORD=:-}"
 )
 
+# Gebruikers en hun bijhorende rollen
 declare -A users_roles
 users_roles=(
 	[logstash_internal]='logstash_writer'
@@ -30,7 +30,7 @@ users_roles=(
 )
 
 # --------------------------------------------------------
-# Roles declarations
+# Rollen en bijhorende JSON-bestanden
 
 declare -A roles_files
 roles_files=(
@@ -42,7 +42,6 @@ roles_files=(
 
 # --------------------------------------------------------
 
-
 log 'Waiting for availability of Elasticsearch. This can take several minutes.'
 
 declare -i exit_code=0
@@ -50,27 +49,17 @@ wait_for_elasticsearch || exit_code=$?
 
 if ((exit_code)); then
 	case $exit_code in
-		6)
-			suberr 'Could not resolve host. Is Elasticsearch running?'
-			;;
-		7)
-			suberr 'Failed to connect to host. Is Elasticsearch healthy?'
-			;;
-		28)
-			suberr 'Timeout connecting to host. Is Elasticsearch healthy?'
-			;;
-		*)
-			suberr "Connection to Elasticsearch failed. Exit code: ${exit_code}"
-			;;
+		6)  suberr 'Could not resolve host. Is Elasticsearch running?' ;;
+		7)  suberr 'Failed to connect to host. Is Elasticsearch healthy?' ;;
+		28) suberr 'Timeout connecting to host. Is Elasticsearch healthy?' ;;
+		*)  suberr "Connection to Elasticsearch failed. Exit code: ${exit_code}" ;;
 	esac
-
 	exit $exit_code
 fi
 
 sublog 'Elasticsearch is running'
 
 log 'Waiting for initialization of built-in users'
-
 wait_for_builtin_users || exit_code=$?
 
 if ((exit_code)); then
@@ -80,10 +69,10 @@ fi
 
 sublog 'Built-in users were initialized'
 
+# Rollen aanmaken of bijwerken
 for role in "${!roles_files[@]}"; do
 	log "Role '$role'"
 
-	declare body_file
 	body_file="${BASH_SOURCE[0]%/*}/roles/${roles_files[$role]:-}"
 	if [[ ! -f "${body_file:-}" ]]; then
 		sublog "No role body found at '${body_file}', skipping"
@@ -94,6 +83,7 @@ for role in "${!roles_files[@]}"; do
 	ensure_role "$role" "$(<"${body_file}")"
 done
 
+# Gebruikers aanmaken of wachtwoord instellen
 for user in "${!users_passwords[@]}"; do
 	log "User '$user'"
 	if [[ -z "${users_passwords[$user]:-}" ]]; then
@@ -101,7 +91,6 @@ for user in "${!users_passwords[@]}"; do
 		continue
 	fi
 
-	declare -i user_exists=0
 	user_exists="$(check_user_exists "$user")"
 
 	if ((user_exists)); then

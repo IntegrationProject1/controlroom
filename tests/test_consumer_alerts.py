@@ -4,7 +4,7 @@ import sys
 import os
 from datetime import datetime, timezone, timedelta
 
-# Voeg het parentpad toe om imports uit de consumer-module mogelijk te maken
+# Voeg parentdirectory toe aan het pad voor imports uit de consumer-module
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from consumer.consumer import (
@@ -15,7 +15,7 @@ from consumer.consumer import (
     check_downtime
 )
 
-# XML helpers
+# Helpers om XML-berichten op te bouwen
 def build_log_xml(service, status, message):
     return f"""<?xml version="1.0"?>
 <Log>
@@ -33,12 +33,11 @@ def build_heartbeat_xml(service):
 </Heartbeat>
 """.encode()
 
-
+# Fixtures voor mocking van externe afhankelijkheden
 @pytest.fixture
 def mock_email():
     with patch("consumer.consumer.send_email_alert") as mock:
         yield mock
-
 
 @pytest.fixture
 def mock_requests():
@@ -46,19 +45,19 @@ def mock_requests():
         mock.return_value.status_code = 200
         yield mock
 
-
+# Test: e-mail wordt verzonden bij foutmelding
 def test_process_log_sends_email_on_error(mock_email, mock_requests):
     xml = build_log_xml("test-service", "error", "Something failed")
     process_log(xml)
     mock_email.assert_called_once_with("test-service", "Foutmelding: error", "Something failed")
 
-
+# Test: geen e-mail bij info-bericht
 def test_process_log_does_not_send_email_on_info(mock_email, mock_requests):
     xml = build_log_xml("test-service", "info", "Just FYI")
     process_log(xml)
     mock_email.assert_not_called()
 
-
+# Test: downtime detectie stuurt e-mail
 def test_downtime_start_sends_email_alert(mock_email, mock_requests):
     service = "test-downtime"
     now = datetime.now(timezone.utc) - timedelta(seconds=10)
@@ -67,7 +66,7 @@ def test_downtime_start_sends_email_alert(mock_email, mock_requests):
         "downtime_start": None
     }
 
-    # Mock `time.sleep` zodat check_downtime slechts één keer loopt
+    # Mock sleep zodat check_downtime maar 1x loopt
     with patch("consumer.consumer.time.sleep", side_effect=InterruptedError):
         try:
             check_downtime()
@@ -80,6 +79,8 @@ def test_downtime_start_sends_email_alert(mock_email, mock_requests):
         f"Service {service} is offline sinds {downtime_tracking[service]['downtime_start']}."
     )
 
+#  Deze test controleert of een service weer online is, maar is momenteel uitgecommentarieerd.
+# Je kan hem activeren als je herstel-functionaliteit wil testen.
 
 # def test_heartbeat_resolves_downtime(mock_email, mock_requests):
 #     service = "test-recover"
