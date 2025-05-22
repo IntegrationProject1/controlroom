@@ -82,23 +82,23 @@ def process_heartbeat(body):
             "Type": "heartbeat"
         }
 
-        print(f"✅ Received heartbeat: {message_dict}")
+        print(f"Received heartbeat: {message_dict}")
 
         # Send the message to Logstash
         if "ServiceName" not in message_dict :
-            print("⚠️ Error: Message is missing fields (ServiceName)")
+            print("Error: Message is missing fields (ServiceName)")
             return
 
         response = requests.post(LOGSTASH_URL, json=message_dict)
         if response.status_code in [200, 201]:
-            print("📨 Heartbeat successfully sent to Logstash")
+            print("Heartbeat successfully sent to Logstash")
         else:
-            print(f"⚠️ Error sending heartbeat to logstash: {response.status_code} - {response.text}")
+            print(f"Error sending heartbeat to logstash: {response.status_code} - {response.text}")
 
     except ET.ParseError:
-        print("⚠️ Error: Invalid XML message")
+        print("Error: Invalid XML message")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         traceback.print_exc()
 
 def process_log(body):
@@ -121,18 +121,18 @@ def process_log(body):
             "Type": "log"
         }
 
-        print(f"✅ Received log: {message_dict}")
+        print(f"Received log: {message_dict}")
 
         # Send the message to Logstash
         if "Status" not in message_dict:
-            print("⚠️ Error: Message is missing fields (status)")
+            print("Error: Message is missing fields (status)")
             return
 
         response = requests.post(LOGSTASH_URL, json=message_dict)
         if response.status_code in [200, 201]:
-            print("📨 Log successfully sent to Logstash")
+            print("Log successfully sent to Logstash")
         else:
-            print(f"⚠️ Error sending log to logstash: {response.status_code} - {response.text}")
+            print(f"Error sending log to logstash: {response.status_code} - {response.text}")
 
         # Verstuur e-mail alert bij foutstatus
         if status.lower() in ["error", "failed", "critical"]:
