@@ -146,7 +146,7 @@ def process_log(body):
 
 def heartbeat_callback(ch, method, properties, body):
     """Gets called when a heartbeat message is received"""
-    process_heartbeat(body)
+    process_heartbeat(body, downtime_tracking)
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def log_callback(ch, method, properties, body):
@@ -336,6 +336,16 @@ def connect():
             time.sleep(5)
     else:
         print("Unable to connect to RabbitMQ after several attempts.")
+
+def main():
+    """Main entry point for the consumer service"""
+    print("Starting Controlroom Consumer Service")
+    
+    # Start the downtime checker thread
+    downtime_thread = start_downtime_checker()
+    
+    # Connect to RabbitMQ and start consuming messages
+    connect(heartbeat_callback, log_callback)
 
 if __name__ == "__main__":
     send_startup_notification()
