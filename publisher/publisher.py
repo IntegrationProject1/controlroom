@@ -46,7 +46,7 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 # Generate dummy logs
 def generate_dummy_logs():
     """Generate a list of dummy logs with random values."""
-    statuses = ["OK", "ERROR", "WARNING"]
+    statuses = ["OK", "ERROR", "WARNING", "INFO"]
     messages = {
         "ERROR": [
             "Failed to connect to database.",
@@ -57,18 +57,29 @@ def generate_dummy_logs():
             "High memory usage detected.",
             "Slow response time from external API.",
             "Service response delayed, retrying...",
+        ],
+        "OK": [
+            "Service is running smoothly.",
+            "No issues detected.",
+            "All systems operational.",
+        ],
+        "INFO": [
+            "Service started successfully.",
+            "Configuration loaded.",
+            "Service is shutting down gracefully.",
         ]
+        
     }
     
     logs = []
-    for i in range(5):
-        status = random.choice(statuses)
-        log = {
-            "ServiceName": f"TestService_{i}",
-            "Status": status,
-            "Message": random.choice(messages[status]) if status in messages else ""
-        }
-        logs.append(log)
+    
+    status = random.choice(statuses)
+    log = {
+        "ServiceName": f"Test_Service",
+        "Status": status,
+        "Message": random.choice(messages[status]) if status in messages else ""
+    }
+    logs.append(log)
     return logs
 
 # Function to validate XML against XSD
@@ -104,9 +115,11 @@ def validate_log_with_xsd(xml_str, xsd_path="log.xsd"):
 def publish_logs(channel):
     """Continuously check for new logs and send them every second."""
     last_sent_data = None
+    last_log_time = 0
     
     while True:
         logs = generate_dummy_logs()
+        current_time = time.time()
         
         if logs != last_sent_data:  # Check if new data is available
             for log in logs:
@@ -124,7 +137,7 @@ def publish_logs(channel):
                 print(f"✅ Sent heartbeat: {heartbeat}")
                 
                 #Send log if it's an error or warning
-                if log["Status"] in ["ERROR", "WARNING"]:
+                if current_time - last_log_time >= 30 and log["Status"] in ["ERROR", "WARNING", "INFO", "OK"]:
                     log_xml = dict_to_log_xml(log)
                     is_valid, error = validate_log_with_xsd(log_xml)
                     if not is_valid:
@@ -137,6 +150,7 @@ def publish_logs(channel):
                         properties=pika.BasicProperties(delivery_mode=2)
                     )
                     print(f"⚠️ Sent log message: {log_xml}")
+                    last_log_time = current_time
                 
                 time.sleep(1)  # Wait 1 seconds before sending the next log
             last_sent_data = logs  # Store last sent data
