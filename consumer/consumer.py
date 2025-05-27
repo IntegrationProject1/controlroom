@@ -146,7 +146,7 @@ def process_log(body):
 
 def heartbeat_callback(ch, method, properties, body):
     """Gets called when a heartbeat message is received"""
-    process_heartbeat(body, downtime_tracking)
+    process_heartbeat(body)
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
 def log_callback(ch, method, properties, body):
