@@ -134,8 +134,10 @@ def process_log(body):
         else:
             print(f"Error sending log to logstash: {response.status_code} - {response.text}")
 
+
         # Verstuur e-mail alert bij foutstatus (Weggecommentarieerd omdat er teveel mails werden verstuurd)
         # Als je dit wilt gebruiken, haal dan de commentaartekens weg
+
         # if status.lower() in ["error", "failed", "critical"]:
         #     send_email_alert(service_name, f"Foutmelding: {status}", log_message)
 
