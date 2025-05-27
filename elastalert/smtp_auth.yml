@@ -1,2 +1,0 @@
-user: ${FROM_ADDR}
-password: "${SMTP_PASSWORD}"
