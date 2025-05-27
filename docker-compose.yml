@@ -25,6 +25,19 @@ services:
   #     - elk
   #   restart: always
 
+  test:
+    container_name: test_runner
+    build: ./integration_test
+    depends_on:
+      - elasticsearch
+      - kibana
+      - logstash
+
+    command: sh -c "sleep 120 && pytest test_integration_heartbeat.py -v"
+
+    networks:
+      - elk
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.17.3
     container_name: elasticsearch
@@ -49,7 +62,7 @@ services:
     volumes:
       - esdata:/usr/share/elasticsearch/data
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
-      - ./backups:/mnt/backups
+      - /data/controlroom:/mnt/backups
     networks:
       - elk
 

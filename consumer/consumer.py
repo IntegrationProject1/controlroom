@@ -135,8 +135,8 @@ def process_log(body):
             print(f"⚠️ Error sending log to logstash: {response.status_code} - {response.text}")
 
         # Verstuur e-mail alert bij foutstatus
-        if status.lower() in ["error", "failed", "critical"]:
-            send_email_alert(service_name, f"Foutmelding: {status}", log_message)
+        # if status.lower() in ["error", "failed", "critical"]:
+        #     send_email_alert(service_name, f"Foutmelding: {status}", log_message)
 
     except ET.ParseError:
         print("Error: Invalid XML message")
@@ -338,7 +338,7 @@ def connect():
         print("Unable to connect to RabbitMQ after several attempts.")
 
 if __name__ == "__main__":
-    send_startup_notification()
+    # send_startup_notification()
     downtime_thread = threading.Thread(target=check_downtime, daemon=True)
     downtime_thread.start()
     connect()
