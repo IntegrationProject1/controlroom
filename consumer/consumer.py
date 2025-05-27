@@ -209,7 +209,7 @@ def check_downtime():
                         print(f"Exception sending downtime log: {e}")
 
                     # Verstuur e-mail alert bij downtime start
-                    # send_email_alert(service, "Service Down", f"Service {service} is offline sinds {downtime_tracking[service]['downtime_start']}.")
+                    send_email_alert(service, "Service Down", f"Service {service} is offline sinds {downtime_tracking[service]['downtime_start']}.")
 
                 elif downtime_start and time_diff.total_seconds() > 5:
                     try:
