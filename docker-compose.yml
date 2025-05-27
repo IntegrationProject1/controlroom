@@ -32,7 +32,6 @@ services:
       - elasticsearch
       - kibana
       - logstash
-      - rabbitmq
 
     command: sh -c "sleep 120 && pytest test_integration_heartbeat.py -v"
 
@@ -113,19 +112,19 @@ services:
       - elk
 
   #RabbitMQ Instance for local development, comment out for deployment on VM
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    environment:
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: ${RABBITMQ_USER}
-      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      QUEUE_NAME: ${QUEUE_NAME}
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    networks:
-      - elk
+  # rabbitmq:
+  #   image: rabbitmq:3-management
+  #   container_name: rabbitmq
+  #   environment:
+  #     RABBITMQ_HOST: rabbitmq
+  #     RABBITMQ_USER: ${RABBITMQ_USER}
+  #     RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+  #     QUEUE_NAME: ${QUEUE_NAME}
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  #   networks:
+  #     - elk
 
   consumer: #Will receive messages from RabbitMQ and pass them to Logstash
     container_name: controlroom_consumer
