@@ -1,4 +1,5 @@
 services:
+  # Elastalert is uitgeschakeld – gebruik dit voor alerts via e-mail op basis van Elasticsearch-data
   # elastalert:
   #   image: jertel/elastalert2
   #   container_name: elastalert
@@ -43,13 +44,11 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Limit memory usage
-      # Credentials for local testing:
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"        # Beperk geheugengebruik
       - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
-
       - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
       - xpack.security.enabled=true
-      - "xpack.ml.enabled=false" # Disable machine learning, to save memory
+      - xpack.ml.enabled=false                  # Machine learning uitschakelen
     ports:
       - "30051:9200"
     ulimits:
@@ -58,7 +57,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 2GB # Limit memory usage
+          memory: 2GB
     volumes:
       - esdata:/usr/share/elasticsearch/data
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro,Z
@@ -79,8 +78,6 @@ services:
     restart: unless-stopped
     ports:
       - "30052:5601"
-      # Ports for local development
-
     networks:
       - elk
 
@@ -97,22 +94,17 @@ services:
       - LOGSTASH_PORT=${LOGSTASH_PORT}
       - "elasticsearch.username: elastic"
     volumes:
-      # - ./config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro,Z
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
     restart: unless-stopped
     ports:
-      - "30053:5044" # Beats input
-      - "30054:5000/tcp" # Logstash TCP input
-      - "30054:5000/udp" # Logstash UDP input
-      # Ports for local development
-      # - "5044:5044" # Beats input
-      # - "5000:5000/tcp" # Logstash TCP input
-      # - "5000:5000/udp" # Logstash UDP input
+      - "30053:5044"       # Beats input
+      - "30054:5000/tcp"   # Logstash TCP input
+      - "30054:5000/udp"   # Logstash UDP input
     networks:
       - elk
 
-  #RabbitMQ Instance for local development, comment out for deployment on VM
+  # RabbitMQ lokaal gebruiken voor testen – uitgeschakeld in productie
   # rabbitmq:
   #   image: rabbitmq:3-management
   #   container_name: rabbitmq
@@ -127,7 +119,7 @@ services:
   #   networks:
   #     - elk
 
-  consumer: #Will receive messages from RabbitMQ and pass them to Logstash
+  consumer:  # Ontvangt berichten van RabbitMQ en stuurt ze door naar Logstash
     container_name: controlroom_consumer
     # depends_on:
     #   - rabbitmq
@@ -142,7 +134,7 @@ services:
     networks:
       - elk
 
-  publisher: #Will send test messages to RabbitMQ, replicating real services
+  publisher:  # Simuleert services die berichten naar RabbitMQ sturen
     container_name: test_publisher
     # depends_on:
     #   - rabbitmq
