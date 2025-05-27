@@ -11,6 +11,7 @@ RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD")
 HEARTBEAT_QUEUE = "controlroom.heartbeat.ping"
 LOG_QUEUE = "controlroom.log.event"
 
+#Maakt alle queues leeg wanneer de consumer opstart
 def purge_queues(channel):
     """Purge all queues before starting to consume"""
     try:
@@ -20,6 +21,7 @@ def purge_queues(channel):
     except Exception as e:
         print(f"Error purging queues: {e}")
 
+# Maakt verbinding met RabbitMQ en start het consumeren van berichten
 def connect(heartbeat_callback, log_callback):
     """Connects to RabbitMQ and starts consuming messages"""
     time.sleep(60)  # Wait for RabbitMQ to start

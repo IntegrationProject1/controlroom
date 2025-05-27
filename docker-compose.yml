@@ -44,11 +44,11 @@ services:
     container_name: elasticsearch
     environment:
       - discovery.type=single-node
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"        # Beperk geheugengebruik
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # Beperk geheugengebruik
       - "ELASTICSEARCH_USER=${ELASTICSEARCH_USER}"
       - "ELASTICSEARCH_PASSWORD=${ELASTICSEARCH_PASSWORD}"
       - xpack.security.enabled=true
-      - xpack.ml.enabled=false                  # Machine learning uitschakelen
+      - xpack.ml.enabled=false # Machine learning uitschakelen
     ports:
       - "30051:9200"
     ulimits:
@@ -98,9 +98,9 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro,Z
     restart: unless-stopped
     ports:
-      - "30053:5044"       # Beats input
-      - "30054:5000/tcp"   # Logstash TCP input
-      - "30054:5000/udp"   # Logstash UDP input
+      - "30053:5044" # Beats input
+      - "30054:5000/tcp" # Logstash TCP input
+      - "30054:5000/udp" # Logstash UDP input
     networks:
       - elk
 
@@ -119,7 +119,7 @@ services:
   #   networks:
   #     - elk
 
-  consumer:  # Ontvangt berichten van RabbitMQ en stuurt ze door naar Logstash
+  consumer: # Ontvangt berichten van RabbitMQ en stuurt ze door naar Logstash
     container_name: controlroom_consumer
     # depends_on:
     #   - rabbitmq
@@ -134,7 +134,7 @@ services:
     networks:
       - elk
 
-  publisher:  # Simuleert services die berichten naar RabbitMQ sturen
+  publisher: # Simuleert services die berichten naar RabbitMQ sturen
     container_name: test_publisher
     # depends_on:
     #   - rabbitmq

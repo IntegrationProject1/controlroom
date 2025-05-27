@@ -1,1 +1,0 @@
-{"min_version":"7.12.0","uuid":"8pcU7QqvSkGubgHsGt5tYw","cluster_id":"Khpc0y9nQR6QWAq-HWMVXA","snapshots":[{"name":"test_snapshot_01","uuid":"9ss1MC-oQjyG5BR-Q_beYg","state":1,"index_metadata_lookup":{},"version":"8.11.0","index_version":8521000,"start_time_millis":1747747785241,"end_time_millis":1747747785441,"slm_policy":""}],"indices":{},"index_metadata_identifiers":{}}
